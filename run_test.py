@@ -1,5 +1,5 @@
 import numpy as np
-from ric import calculate_elo
+from ric import run_elo
 
 def main():
     matchups = np.array(
@@ -10,14 +10,16 @@ def main():
          dtype=np.int32
     )
     outcomes = np.array([0.0, 0.5, 0.5, 1.0], dtype=np.float64)
+    num_matchups = 4
     num_competitors = 4
     initial_rating = 1500.0
     scale = 400.0
     base = 10.0
 
-    ratings = calculate_elo(
+    ratings = run_elo(
         matchups,
         outcomes,
+        num_matchups,
         num_competitors,
         initial_rating,
         scale,
