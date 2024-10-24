@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "ric.h"
 
@@ -17,5 +18,6 @@ double* run_elo(
         ratings[i] = initial_rating;
     }
 
+    printf("done!\n");
     return ratings;
 }
