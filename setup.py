@@ -4,7 +4,7 @@ import numpy as np
 
 ext = Extension(
     "ric",
-    sources=["ric.pyx", "src/elo.c"],
+    sources=["ric.pyx", "src/elo.c", "src/glicko.c"],
     include_dirs=[np.get_include(), "src"],
     define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
     extra_compile_args=["-O3"],  # Set -O3 optimization
