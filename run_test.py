@@ -8,9 +8,9 @@ from riix.utils.data_utils import MatchupDataset
 from ric import online_elo, online_glicko
 
 def main():
-    # game = 'smash_melee'
+    game = 'smash_melee'
     # game = 'league_of_legends'
-    game = 'tetris'
+    # game = 'tetris'
     df = load_dataset('EsportsBench/EsportsBench', split=game).to_pandas()
     competitor_cols = ['competitor_1', 'competitor_2']
 
@@ -22,7 +22,7 @@ def main():
         competitor_cols=competitor_cols,
         outcome_col='outcome',
         datetime_col='date',
-        rating_period='7D'
+        rating_period='1D'
     )
 
 
@@ -68,10 +68,10 @@ def main():
         c = dataset.competitors[idx]
         print(f'{c[:20]:20}:{ratings[idx]:.4f}')
 
-    acc = ((probs > 0.5) == outcomes).astype(np.float64).mean()
+    acc = ((probs >= 0.5) == outcomes).astype(np.float64).mean()
     print(acc)
 
-    initial_r, initial_rd = 1500.0, 350.0
+    initial_r, initial_rd = 1500.0, 350
     c = 63.2
     rs, rds, probs = online_glicko(
         matchups,
@@ -88,9 +88,12 @@ def main():
     end_time = time.time()
     print(f'online glicko duration (s): {end_time-start_time:.4f}')
 
-    print(rs.shape)
-    print(rs.min(), rs.max())
-    print(rds.shape)
+    print(f'{rs.min()=}, {rs.max()=}, {rs.mean()=}')
+    print(f'{rds.min()=}, {rds.max()=}, {rds.mean()=}')
+    print(f'{probs.min()=}, {probs.max()=}, {probs.mean()=}')
+    print(probs)
+    acc = ((probs >= 0.5) == outcomes).astype(np.float64).mean()
+    print(acc)
 
 
 
