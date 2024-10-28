@@ -5,12 +5,12 @@ import pandas as pd
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import online_elo, online_glicko
+from ric import online_elo, online_glicko, online_trueskill
 
 def main():
-    game = 'smash_melee'
+    # game = 'smash_melee'
     # game = 'league_of_legends'
-    # game = 'tetris'
+    game = 'tetris'
     df = load_dataset('EsportsBench/EsportsBench', split=game).to_pandas()
     competitor_cols = ['competitor_1', 'competitor_2']
 
@@ -26,9 +26,9 @@ def main():
     )
 
 
-    matchups = np.ascontiguousarray(dataset.matchups, dtype=np.int32)
-    outcomes = np.ascontiguousarray(dataset.outcomes, dtype=np.float64)
-    time_steps = dataset.time_steps.astype(np.int32)
+    matchups = dataset.matchups
+    outcomes = dataset.outcomes
+    time_steps = dataset.time_steps
     num_matchups = matchups.shape[0]
     num_competitors = len(dataset.competitors)
 
@@ -55,10 +55,10 @@ def main():
         outcomes,
         num_matchups,
         num_competitors,
-        initial_rating,
-        k,
-        scale,
-        base,
+        # initial_rating,
+        # k,
+        # scale,
+        # base,
     )
     end_time = time.time()
     print(f'online elo duration (s): {end_time-start_time:.4f}')
@@ -75,15 +75,15 @@ def main():
     c = 63.2
     rs, rds, probs = online_glicko(
         matchups,
-        outcomes,
         time_steps,
+        outcomes,
         num_matchups,
         num_competitors,
-        initial_r,
-        initial_rd,
-        c,
-        scale,
-        base,
+        # initial_r,
+        # initial_rd,
+        # c,
+        # scale,
+        # base,
     )
     end_time = time.time()
     print(f'online glicko duration (s): {end_time-start_time:.4f}')
@@ -94,6 +94,16 @@ def main():
     print(probs)
     acc = ((probs >= 0.5) == outcomes).astype(np.float64).mean()
     print(acc)
+
+    mus, sigmas, probs = online_trueskill(
+        matchups,
+        outcomes,
+        num_matchups,
+        num_competitors,
+    )
+    print(mus)
+    print(sigmas)
+    
 
 
 

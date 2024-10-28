@@ -16,47 +16,47 @@ double calc_prob(double logit, double g_opp) {
 
 void online_glicko(
     int matchups[][2],
-    double outcomes[],
     int time_steps[],
+    double outcomes[],
+    double mean[],
+    double var[],
+    double probs[],
     int num_matchups,
     int num_competitors,
-    double initial_rd,
+    double max_rd,
     double c,
     double scale,
-    double base,
-    double rs[],
-    double rd2s[],
-    double probs[]
+    double base
 )
 {
     double q = log(base) / scale;
     double q2 = q * q;
     double c2 = c * 2;
     double three_q2_over_pi2 = (3.0 * q2) / M_PI;
-    double max_rd2 = initial_rd * initial_rd;
+    double max_var = max_rd * max_rd;
     int* last_played = (int*)calloc(num_competitors, sizeof(int));
 
     for (int i = 0; i < num_matchups; i++) {
         int idx_a = matchups[i][0];
         int idx_b = matchups[i][1];
-        double r_a = rs[idx_a];
-        double r_b = rs[idx_b];
-        double rd2_a = rd2s[idx_a];
-        double rd2_b = rd2s[idx_b];
+        double r_a = mean[idx_a];
+        double r_b = mean[idx_b];
+        double rd2_a = var[idx_a];
+        double rd2_b = var[idx_b];
         int last_played_a = last_played[idx_a];
         int last_played_b = last_played[idx_b];
 
         // increase rd for passage of time
         if (last_played_a != time_steps[i]) {
             rd2_a += (double) ((time_steps[i] - last_played_a) * c2);
-            if (rd2_a > max_rd2) {
-                rd2_a = max_rd2;
+            if (rd2_a > max_var) {
+                rd2_a = max_var;
             }
         }
         if (last_played_b != time_steps[i]) {
             rd2_b += (double) ((time_steps[i] - last_played_b) * c2);
-            if (rd2_b > max_rd2) {
-                rd2_b = max_rd2;
+            if (rd2_b > max_var) {
+                rd2_b = max_var;
             }
         }
         
@@ -73,11 +73,11 @@ void online_glicko(
         double new_rd2_a = 1.0 / ((1.0 / rd2_a) + d2_inv_a);
         double new_rd2_b = 1.0 / ((1.0 / rd2_b) + d2_inv_b);
 
-        rs[idx_a] += q * new_rd2_a * g_b * (outcomes[i] - prob_a);
-        rs[idx_b] += q * new_rd2_b * g_a * (1.0 - outcomes[i] - prob_b);
+        mean[idx_a] += q * new_rd2_a * g_b * (outcomes[i] - prob_a);
+        mean[idx_b] += q * new_rd2_b * g_a * (1.0 - outcomes[i] - prob_b);
 
-        rd2s[idx_a] = new_rd2_a;
-        rd2s[idx_b] = new_rd2_b;
+        var[idx_a] = new_rd2_a;
+        var[idx_b] = new_rd2_b;
 
         last_played[idx_a] = time_steps[i];
         last_played[idx_b] = time_steps[i];
