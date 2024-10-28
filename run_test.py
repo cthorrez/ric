@@ -1,7 +1,6 @@
 
 import time
 import numpy as np
-import pandas as pd
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
@@ -10,12 +9,12 @@ from ric import online_elo, online_glicko, online_trueskill
 def main():
     # game = 'smash_melee'
     # game = 'league_of_legends'
-    game = 'tetris'
-    df = load_dataset('EsportsBench/EsportsBench', split=game).to_pandas()
-    competitor_cols = ['competitor_1', 'competitor_2']
+    # game = 'tetris'
+    # df = load_dataset('EsportsBench/EsportsBench', split=game).to_polars()
+    # competitor_cols = ['competitor_1', 'competitor_2']
 
-    # df = pl.read_csv('~/Downloads/chartslp.csv').to_pandas()
-    # competitor_cols=['player_1_code', 'player_2_code']
+    df = pl.read_csv('~/Downloads/chartslp.csv')
+    competitor_cols=['player_1_code', 'player_2_code']
 
     dataset = MatchupDataset(
         df=df,
@@ -101,8 +100,8 @@ def main():
         num_matchups,
         num_competitors,
     )
-    print(mus)
-    print(sigmas)
+    # print(mus)
+    # print(sigmas)
     
 
 

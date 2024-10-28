@@ -31,7 +31,7 @@ void online_glicko(
 {
     double q = log(base) / scale;
     double q2 = q * q;
-    double c2 = c * 2;
+    double c2 = c * c;
     double three_q2_over_pi2 = (3.0 * q2) / M_PI;
     double max_var = max_rd * max_rd;
     int* last_played = (int*)calloc(num_competitors, sizeof(int));
