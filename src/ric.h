@@ -28,7 +28,6 @@ void online_glicko(
     double base
 );
 
-
 void online_trueskill(
     int matchups[][2],
     double outcomes[],

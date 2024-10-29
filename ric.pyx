@@ -6,7 +6,6 @@ cdef extern from "src/ric.h":
     void _online_glicko "online_glicko" (int[][2], int[], double[], double[], double[], double[],  int, int, double, double, double, double)
     void _online_trueskill "online_trueskill" (int[][2], double[], double[], double[], double[], int, int, double, double, double)
 
-
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
     np.ndarray[double, ndim=1] outcomes,
@@ -50,11 +49,23 @@ def online_trueskill(
     double initial_sigma=8.33,
     double beta=4.166,
     double tau=0.0833,
-    double epsilon=0.0
+    double epsilon=0.0001
 ):
     cdef np.ndarray[double, ndim=1] mean = np.full(num_competitors, fill_value=initial_mu, dtype=np.float64)
     cdef np.ndarray[double, ndim=1] var = np.full(num_competitors, fill_value=initial_sigma*initial_sigma, dtype=np.float64)
     cdef np.ndarray[double, ndim=1] probs = np.zeros(num_matchups, dtype=np.float64)
-    _online_trueskill(<int (*)[2]>matchups.data, &outcomes[0], &mean[0], &var[0], &probs[0], num_matchups, num_competitors, beta, tau, epsilon)
+    _online_trueskill(
+        <int (*)[2]>matchups.data, 
+        &outcomes[0], 
+        &mean[0],
+        &var[0], 
+        &probs[0],
+        num_matchups, 
+        num_competitors, 
+        beta, 
+        tau, 
+        epsilon
+    )
+    
     var = np.sqrt(var)
     return mean, var, probs
