@@ -2,4 +2,4 @@ numpy
 cython
 polars
 datasets
-riix==0.0.5
+riix==0.0.6
