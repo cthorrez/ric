@@ -2,43 +2,43 @@
 #define RIC_H
 
 void online_elo(
-    int matchups[][2],
-    double outcomes[],
+    const int matchups[][2],
+    const double outcomes[],
     double mean[],
     double probs[],
-    int num_matchups,
-    int num_competitors,
-    double k,
-    double scale,
-    double base
+    const int num_matchups,
+    const int num_competitors,
+    const double k,
+    const double scale,
+    const double base
 );
 
 void online_glicko(
-    int matchups[][2],
-    int time_steps[],
-    double outcomes[],
+    const int matchups[][2],
+    const int time_steps[],
+    const double outcomes[],
     double mean[],
     double var[],
     double probs[],
-    int num_matchups,
-    int num_competitors,
-    double max_rd,
-    double c,
-    double scale,
-    double base
+    const int num_matchups,
+    const int num_competitors,
+    const double max_rd,
+    const double c,
+    const double scale,
+    const double base
 );
 
 void online_trueskill(
-    int matchups[][2],
-    double outcomes[],
+    const int matchups[][2],
+    const double outcomes[],
     double mean[],
     double var[],
     double probs[],
-    int num_matchups,
-    int num_competitors,
-    double beta,
-    double tau,
-    double epsilon
+    const int num_matchups,
+    const int num_competitors,
+    const double beta,
+    const double tau,
+    const double epsilon
 );
 
 #endif

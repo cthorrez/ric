@@ -1,21 +1,19 @@
-#include <stdlib.h>
 #include <stdio.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <stdbool.h>  // Add this with your other includes
 #include "ric.h"
 
 
 #define M_1_SQRT_2PI 0.39894228040143267793994605993438
-double norm_pdf(double z){
+double norm_pdf(const double z){
     return M_1_SQRT_2PI * exp(-0.5 * z * z);
 }
 
-double norm_cdf(double z){
+double norm_cdf(const double z){
     return 0.5 * (1.0 + erf(z * M_SQRT1_2));
 }
 
-void v_w_win(double t, double epsilon, double* v, double* w) {
+void v_w_win(const double t, const double epsilon, double* v, double* w) {
     double z = t - epsilon;
     double pdf = norm_pdf(z);
     double cdf = norm_cdf(z);
@@ -28,7 +26,7 @@ void v_w_win(double t, double epsilon, double* v, double* w) {
     *w = *v * (*v + z);
 }
 
-void v_w_draw(double t, double epsilon, double* v, double* w){
+void v_w_draw(const double t, const double epsilon, double* v, double* w){
     double e_p_t = epsilon + t;
     double e_m_t = epsilon - t;
     double denom = norm_cdf(e_m_t) + norm_cdf(e_p_t) - 1.0; // this relies on cdf(-epsilon - t) = 1 - cdf(epsilon + t)
@@ -40,22 +38,22 @@ void v_w_draw(double t, double epsilon, double* v, double* w){
 
 
 void online_trueskill(
-    int matchups[][2],
-    double outcomes[],
+    const int matchups[][2],
+    const double outcomes[],
     double mean[],
     double var[],
     double probs[],
-    int num_matchups,
-    int num_competitors,
-    double beta,
-    double tau,
-    double epsilon
+    const int num_matchups,
+    const int num_competitors,
+    const double beta,
+    const double tau,
+    const double epsilon
 )
 {
     double c2, c, z, eps_over_c, w, v, step_a, step_b, sign;
     int idx_a, idx_b;
-    double tau2 = tau * tau;
-    double two_beta2 =  2.0 * beta * beta;
+    const double tau2 = tau * tau;
+    const double two_beta2 =  2.0 * beta * beta;
 
     for (int i = 0; i < num_matchups; i++) {
         idx_a = matchups[i][0];

@@ -2,9 +2,9 @@ import numpy as np
 cimport numpy as np
 
 cdef extern from "src/ric.h":
-    void _online_elo "online_elo" (int[][2], double[], double[], double[], int, int, double, double, double)
-    void _online_glicko "online_glicko" (int[][2], int[], double[], double[], double[], double[],  int, int, double, double, double, double)
-    void _online_trueskill "online_trueskill" (int[][2], double[], double[], double[], double[], int, int, double, double, double)
+    void _online_elo "online_elo" (const int[][2], const double[], double[], double[], const int, const int, const double, const double, const double)
+    void _online_glicko "online_glicko" (const int[][2], const int[], const double[], double[], double[], double[], const int, const int, const double, const double, const double, const double)
+    void _online_trueskill "online_trueskill" (const int[][2], const double[], double[], double[], double[], const int, const int, const double, const double, const double)
 
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
