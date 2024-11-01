@@ -4,14 +4,13 @@ import numpy as np
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from riix.metrics import binary_accuracy
-from ric import online_elo, online_glicko, online_trueskill
+from ric import online_elo, online_glicko, online_trueskill, compute_metrics
 
 def main():
     game = 'smash_melee'
     # game = 'league_of_legends'
     # game = 'tetris'
-    df = load_dataset('EsportsBench/EsportsBench', split=game).to_polars()
+    df = load_dataset('EsportsBench/EsportsBench', split=game).to_polars().filter(pl.col('outcome') != 0.5)
     competitor_cols = ['competitor_1', 'competitor_2']
 
     # df = pl.read_csv('~/Downloads/chartslp.csv')
@@ -68,8 +67,8 @@ def main():
     # for idx in sort_idxs[:10]:
     #     c = dataset.competitors[idx]
     #     print(f'{c[:20]:20}:{ratings[idx]:.4f}')
-    acc = binary_accuracy(probs, outcomes)
-    print(f'Elo accuracy: {acc}')
+    acc, log_loss, brier_score = compute_metrics(probs, outcomes)
+    print(f'Elo (acc, log_loss, brier_score): {acc:.4f}, {log_loss:.4f}, {brier_score:.4f}')
 
 
     print('\nrunning Glicko')
@@ -93,8 +92,8 @@ def main():
     print(f'{rs.min()=}, {rs.max()=}, {rs.mean()=}')
     print(f'{rds.min()=}, {rds.max()=}, {rds.mean()=}')
     print(f'{probs.min()=}, {probs.max()=}, {probs.mean()=}')
-    acc = binary_accuracy(probs, outcomes)
-    print(f'Glicko accuracy: {acc}')
+    acc, log_loss, brier_score = compute_metrics(probs, outcomes)
+    print(f'Glicko (acc, log_loss, brier_score): {acc:.4f}, {log_loss:.4f}, {brier_score:.4f}')
 
 
     print('\nrunning TrueSkill')
@@ -121,8 +120,8 @@ def main():
     print(f'{mus.min()=}, {mus.max()=}, {mus.mean()=}')
     print(f'{sigmas.min()=}, {sigmas.max()=}, {sigmas.mean()=}')
     print(f'{probs.min()=}, {probs.max()=}, {probs.mean()=}')
-    acc = binary_accuracy(probs, outcomes)
-    print(f'TrueSkill accuracy: {acc}')
+    acc, log_loss, brier_score = compute_metrics(probs, outcomes)
+    print(f'TrueSkill (acc, log_loss, brier_score): {acc:.4f}, {log_loss:.4f}, {brier_score:.4f}')
 
 
 

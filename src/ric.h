@@ -41,4 +41,11 @@ void online_trueskill(
     const double epsilon
 );
 
+double* compute_metrics(
+    double probs[],
+    double outcomes[],
+    double metrics[3],
+    int n
+);
+
 #endif

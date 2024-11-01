@@ -5,6 +5,7 @@ cdef extern from "src/ric.h":
     void _online_elo "online_elo" (const int[][2], const double[], double[], double[], const int, const int, const double, const double, const double)
     void _online_glicko "online_glicko" (const int[][2], const int[], const double[], double[], double[], double[], const int, const int, const double, const double, const double, const double)
     void _online_trueskill "online_trueskill" (const int[][2], const double[], double[], double[], double[], const int, const int, const double, const double, const double)
+    void _compute_metrics "compute_metrics" (double[], double[], double[3], int)
 
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
@@ -66,6 +67,13 @@ def online_trueskill(
         tau, 
         epsilon
     )
-    
     var = np.sqrt(var)
     return mean, var, probs
+
+def compute_metrics(
+    np.ndarray[double, ndim=1] probs,
+    np.ndarray[double, ndim=1] outcomes,
+):
+    cdef np.ndarray[double, ndim=1] metrics = np.zeros(3, dtype=np.float64)
+    _compute_metrics(&probs[0], &outcomes[0], &metrics[0], probs.shape[0])
+    return metrics
