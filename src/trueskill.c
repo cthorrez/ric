@@ -36,20 +36,37 @@ void v_w_draw(const double t, const double epsilon, double* v, double* w){
     *w = ((e_m_t * pdf_m) + (e_p_t * pdf_p)) / denom;
 }
 
-
-void online_trueskill(
-    const int matchups[][2],
-    const double outcomes[],
-    double mean[],
-    double var[],
-    double probs[],
-    const int num_matchups,
-    const int num_competitors,
-    const double beta,
-    const double tau,
-    const double epsilon
-)
+void online_trueskill(ModelInputs model_inputs)
+/*
+ * Updates TrueSkill ratings based on match outcomes
+ * 
+ * @param model_inputs:
+ *   dataset:
+ *     - matchups[num_matchups][2]: pairs of competitor indices
+ *     - outcomes[num_matchups]: match results (0, 0.5, or 1)
+ *   model_params:
+ *     - [0]: mus[num_competitors]: skill mean for each competitor
+ *     - [1]: sigma2s[num_competitors]: skill variance
+ *   hyper_params: [beta, tau, epsilon]
+ *   probs[num_matchups]: output probabilities for each match
+ */
 {
+    // Dataset fields
+    const int (*matchups)[2] = model_inputs.dataset->matchups;
+    const double* outcomes = model_inputs.dataset->outcomes;
+    const int num_matchups = model_inputs.dataset->num_matchups;
+     
+    // Model parameters
+    double* mus = model_inputs.model_params[0];
+    double* sigma2s = model_inputs.model_params[1];
+    
+    // Output array
+    double* probs = model_inputs.probs;
+    
+    // Hyperparameters
+    const double* h = model_inputs.hyper_params;
+    const double beta = h[0], tau = h[1], epsilon = h[2];
+
     double c2, c, z, eps_over_c, w, v, step_a, step_b, sign;
     int idx_a, idx_b;
     const double tau2 = tau * tau;
@@ -58,16 +75,16 @@ void online_trueskill(
     for (int i = 0; i < num_matchups; i++) {
         idx_a = matchups[i][0];
         idx_b = matchups[i][1];
-        var[idx_a] += tau2;
-        var[idx_b] += tau2;
-        c2 = two_beta2 + var[idx_a] + var[idx_b];
+        sigma2s[idx_a] += tau2;
+        sigma2s[idx_b] += tau2;
+        c2 = two_beta2 + sigma2s[idx_a] + sigma2s[idx_b];
         c = sqrt(c2);
         eps_over_c = epsilon / c;
-        z = (mean[idx_a] - mean[idx_b]) / c;
+        z = (mus[idx_a] - mus[idx_b]) / c;
         probs[i] = norm_cdf(z);
 
-        step_a = var[idx_a] / c;
-        step_b = var[idx_b] / c;
+        step_a = sigma2s[idx_a] / c;
+        step_b = sigma2s[idx_b] / c;
 
         if (outcomes[i] != 0.5){
             sign = (2.0 * outcomes[i]) - 1.0; // map 1 -> 1, and 0 -> -1
@@ -77,12 +94,12 @@ void online_trueskill(
             sign = 1.0;
             v_w_draw(z, eps_over_c, &v, &w);
         }
-        mean[idx_a] += sign * step_a * v;
-        mean[idx_b] -= sign * step_b * v;
+        mus[idx_a] += sign * step_a * v;
+        mus[idx_b] -= sign * step_b * v;
 
-        // var[idx_a] -= step_a * step_a * w;
-        // var[idx_b] -= step_b * step_b * w;
-        var[idx_a] = fmax(1e-6, var[idx_a] - step_a * step_a * w);
-        var[idx_b] = fmax(1e-6, var[idx_b] - step_b * step_b * w);
+        // sigma2s[idx_a] -= step_a * step_a * w;
+        // sigma2s[idx_b] -= step_b * step_b * w;
+        sigma2s[idx_a] = fmax(1e-6, sigma2s[idx_a] - step_a * step_a * w);
+        sigma2s[idx_b] = fmax(1e-6, sigma2s[idx_b] - step_b * step_b * w);
     }
 }
