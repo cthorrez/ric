@@ -16,11 +16,14 @@ cdef extern from "src/ric.h":
         double* hyper_params
         double* probs
     
+    ctypedef void (*RatingSystem)(ModelInputs model_inputs)
+    
     # Function declarations
     void _online_elo "online_elo" (ModelInputs)
     void _online_glicko "online_glicko" (ModelInputs)
     void _online_trueskill "online_trueskill" (ModelInputs)
     void _compute_metrics "compute_metrics" (double[], double[], double[3], int)
+    void _evaluate "evaluate" (RatingSystem, Dataset, double[3], int)
 
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
@@ -68,7 +71,7 @@ def online_glicko(
     return ratings, np.sqrt(rd2s), probs
 
 
-def online_trueskill(
+cpdef online_trueskill(
     np.ndarray[int, ndim=2] matchups,
     np.ndarray[double, ndim=1] outcomes,
     int num_matchups,
@@ -79,6 +82,21 @@ def online_trueskill(
     double tau=0.0833,
     double epsilon=0.0001
 ):
+    """
+    Adds two integers and returns the result.
+
+    Parameters
+    ----------
+    a : int
+        First integer to add.
+    b : int
+        Second integer to add.
+
+    Returns
+    -------
+    int
+        The sum of `a` and `b`.
+    """
     cdef np.ndarray[double, ndim=1] mus = np.full(num_competitors, initial_mu, dtype=np.float64)
     cdef np.ndarray[double, ndim=1] sigma2s = np.full(num_competitors, initial_sigma*initial_sigma, dtype=np.float64)
     cdef np.ndarray[double, ndim=1] probs = np.zeros(num_matchups, dtype=np.float64)

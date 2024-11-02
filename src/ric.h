@@ -20,21 +20,29 @@ void online_elo(ModelInputs model_inputs);
 void online_glicko(ModelInputs model_inputs);
 void online_trueskill(ModelInputs model_inputs);
 
-double* compute_metrics(
+typedef void (*RatingSystem)(ModelInputs model_inputs);
+
+void compute_metrics(
     double probs[],
     double outcomes[],
     double metrics[3],
     int n
 );
 
-typedef double (*RatingSystem)(double* params);
+double evaluate(
+    RatingSystem model,
+    ModelInputs model_inputs,
+    double metrics[3]
+);
+
+
 void param_sweep(
-    RatingSystem model,      // function pointer to model
-    double** param_sets,     // array of parameter sets [n_trials][n_params]
-    int n_trials,           // number of trials (100 in your case)
-    int n_params,           // number of params this model uses
-    double* best_params,    // output: best params found
-    double* best_metric     // output: best metric found
+    RatingSystem model,
+    double** param_sets,
+    int n_trials,
+    int n_params,
+    double* best_params,
+    double* best_metric
 );
 
 #endif

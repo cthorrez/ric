@@ -30,6 +30,7 @@ setup(
     ext_modules=cythonize(
         [ext],
         language_level='3',
+        compiler_directives={'embedsignature': True}
     ),
     install_requires=["numpy"],
 )

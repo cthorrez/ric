@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include "ric.h"
 
-double* compute_metrics(
+void compute_metrics(
     double probs[],
     double outcomes[],
     double metrics[3],
@@ -18,9 +18,18 @@ double* compute_metrics(
     metrics[0] = metrics[0] / n;
     metrics[1] = metrics[1] / n;
     metrics[2] = metrics[2] / n;
-    return metrics;
 }
 
+double evaluate(
+    RatingSystem model,
+    ModelInputs model_inputs,
+    double metrics[3]
+)
+{
+    model(model_inputs);
+    compute_metrics(model_inputs.probs, model_inputs.dataset->outcomes, metrics, model_inputs.dataset->num_matchups);
+    return metrics[0];
+}
 
 
 // void param_sweep(
