@@ -26,7 +26,7 @@ void online_glicko(ModelInputs model_inputs)
  *   model_params:
  *     - [0]: ratings[num_competitors]: rating for each competitor
  *     - [1]: rd2s[num_competitors]: rating deviation squared
- *   hyper_params: [max_rd, c, base, scale]
+ *   hyper_params: [max_rd, c, scale, base]
  *   probs[num_matchups]: output probabilities for each match
  */
 {
@@ -39,7 +39,7 @@ void online_glicko(ModelInputs model_inputs)
     double* rd2s = model_inputs.model_params[1];
     double* probs = model_inputs.probs;
     const double* h = model_inputs.hyper_params;
-    const double max_rd = h[0], c = h[1], base = h[2], scale = h[3];
+    const double max_rd = h[0], c = h[1], scale = h[2], base = h[3];
 
 
     int idx_a, idx_b, last_played_a, last_played_b;
@@ -58,6 +58,11 @@ void online_glicko(ModelInputs model_inputs)
         r_b = ratings[idx_b];
         rd2_a = rd2s[idx_a];
         rd2_b = rd2s[idx_b];
+        // printf("r_a %f\n", r_a);
+        // printf("r_b %f\n", r_b);
+        // printf("rd2_a %f\n", rd2_a);
+        // printf("rd2_b %f\n", rd2_b);
+        // printf("outcome: %f", outcomes[i]);
         last_played_a = last_played[idx_a];
         last_played_b = last_played[idx_b];
 

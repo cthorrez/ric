@@ -35,54 +35,43 @@ def online_elo(
     # Initialize arrays
     cdef np.ndarray[double, ndim=2] ratings = np.full((num_competitors, 1), initial_rating, dtype=np.float64)
     cdef np.ndarray[double, ndim=1] probs = np.zeros(num_matchups, dtype=np.float64)
-    cdef np.ndarray[double, ndim=1] hyper_params = np.array([k, base, scale], dtype=np.float64)
-    print('arrays')
-    cdef Dataset dataset
-    dataset.matchups = <int (*)[2]>matchups.data
-    print('matchups')
-    dataset.outcomes = <double*>outcomes.data
-    print('outcomes')
-    dataset.time_steps = NULL
-    dataset.num_matchups = num_matchups
-    dataset.num_competitors = num_competitors
-    print('counts')
-    
-    cdef double** ratings_ptr = <double**>malloc(sizeof(double*))
-    ratings_ptr[0] = &ratings[0,0]  # Point to first (and only) column
-
-    cdef ModelInputs inputs
-    inputs.dataset = &dataset
-    print('dataset')
-    inputs.model_params = ratings_ptr
-    print('model params')
-    inputs.hyper_params = &hyper_params[0]
-    print('hparams')
-    inputs.probs = &probs[0]
-    print('probs')
-
-    print('inputs')
+    cdef np.ndarray[double, ndim=1] hyper_params = np.array([k, scale, base], dtype=np.float64)
+    cdef Dataset dataset = Dataset(<int (*)[2]>matchups.data, NULL, <double*>outcomes.data, num_matchups, num_competitors)
+    cdef double* ratings_ptr = &ratings[0,0]
+    cdef ModelInputs inputs = ModelInputs(&dataset, &ratings_ptr, &hyper_params[0], &probs[0])
     _online_elo(inputs)
-    print('done')
     return ratings[:,0], probs
 
-# def online_glicko(
-#     np.ndarray[int, ndim=2] matchups,
-#     np.ndarray[int, ndim=1] time_steps,
-#     np.ndarray[double, ndim=1] outcomes,
-#     int num_matchups,
-#     int num_competitors,
-#     double initial_rating=1500.0,
-#     double initial_rd=350.0,
-#     double c=63.2,
-#     double scale=400.0,
-#     double base=10.0,
-# ):
-#     cdef np.ndarray[double, ndim=1] mean = np.full(num_competitors, fill_value=initial_rating, dtype=np.float64)
-#     cdef np.ndarray[double, ndim=1] var = np.full(num_competitors, fill_value=initial_rd*initial_rd, dtype=np.float64)
-#     cdef np.ndarray[double, ndim=1] probs = np.zeros(num_matchups, dtype=np.float64)
-#     _online_glicko(<int (*)[2]>matchups.data, &time_steps[0], &outcomes[0], &mean[0], &var[0], &probs[0], num_matchups, num_competitors, initial_rd, c, scale, base)
-#     var = np.sqrt(var)
-#     return mean, var, probs
+def online_glicko(
+    np.ndarray[int, ndim=2] matchups,
+    np.ndarray[int, ndim=1] time_steps,
+    np.ndarray[double, ndim=1] outcomes,
+    int num_matchups,
+    int num_competitors,
+    double initial_rating=1500.0,
+    double initial_rd=350.0,
+    double c=63.2,
+    double scale=400.0,
+    double base=10.0,
+):
+    # cdef np.ndarray[double, ndim=2] model_params = np.zeros((num_competitors,2), dtype=np.float64)
+    # model_params[:,0] = np.full(num_competitors, fill_value=initial_rating, dtype=np.float64)
+    # model_params[:,1] = np.full(num_competitors, fill_value=initial_rd*initial_rd, dtype=np.float64)
+    cdef np.ndarray[double, ndim=1] ratings = np.full(num_competitors, initial_rating, dtype=np.float64)
+    cdef np.ndarray[double, ndim=1] rd2s = np.full(num_competitors, initial_rd * initial_rd, dtype=np.float64)
+
+
+    cdef np.ndarray[double, ndim=1] probs = np.zeros(num_matchups, dtype=np.float64)
+    cdef np.ndarray[double, ndim=1] hyper_params = np.array([initial_rd, c, scale, base], dtype=np.float64)
+    cdef Dataset dataset = Dataset(<int (*)[2]>matchups.data, <int*>time_steps.data, <double*>outcomes.data, num_matchups, num_competitors)
+    cdef double** params_ptr = <double**>malloc(2 * sizeof(double*))
+    params_ptr[0] = <double*>ratings.data
+    params_ptr[1] = <double*>rd2s.data
+    cdef ModelInputs inputs = ModelInputs(&dataset, params_ptr, &hyper_params[0], &probs[0])
+    _online_glicko(inputs)
+    # return model_params[:,0], np.sqrt(model_params[:,1]), probs
+    return ratings, np.sqrt(rd2s), probs
+
 
 # def online_trueskill(
 #     np.ndarray[int, ndim=2] matchups,
