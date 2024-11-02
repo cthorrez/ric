@@ -4,12 +4,12 @@ import numpy as np
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import online_elo, compute_metrics, online_glicko, online_trueskill, evaluate
+from ric import online_elo, compute_metrics, online_glicko, online_trueskill, evaluate, ModelInputs, Dataset
 
 def main():
-    game = 'smash_melee'
+    # game = 'smash_melee'
     # game = 'league_of_legends'
-    # game = 'tetris'
+    game = 'tetris'
     df = load_dataset('EsportsBench/EsportsBench', split=game).to_polars().filter(pl.col('outcome') != 0.5)
     competitor_cols = ['competitor_1', 'competitor_2']
 
@@ -69,6 +69,14 @@ def main():
     #     print(f'{c[:20]:20}:{ratings[idx]:.4f}')
     acc, log_loss, brier_score = compute_metrics(probs, outcomes)
     print(f'Elo (acc, log_loss, brier_score): {acc:.4f}, {log_loss:.4f}, {brier_score:.4f}')
+
+    c_dataset = Dataset(matchups, outcomes)
+    elo_model_params = np.full((num_competitors, 1), 1500.0, dtype=np.float64)
+    elo_hyper_params = np.array([k, scale, base])
+    elo_model_inputs = ModelInputs(c_dataset, elo_model_params, elo_hyper_params)
+    log_loss = evaluate("elo", elo_model_inputs)
+    print(log_loss)
+
 
 
     print('\nrunning Glicko')
