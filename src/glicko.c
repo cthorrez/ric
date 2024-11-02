@@ -58,11 +58,6 @@ void online_glicko(ModelInputs model_inputs)
         r_b = ratings[idx_b];
         rd2_a = rd2s[idx_a];
         rd2_b = rd2s[idx_b];
-        // printf("r_a %f\n", r_a);
-        // printf("r_b %f\n", r_b);
-        // printf("rd2_a %f\n", rd2_a);
-        // printf("rd2_b %f\n", rd2_b);
-        // printf("outcome: %f", outcomes[i]);
         last_played_a = last_played[idx_a];
         last_played_b = last_played[idx_b];
 
