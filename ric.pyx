@@ -162,3 +162,17 @@ cpdef evaluate(str system_name, ModelInputs inputs):
         raise ValueError(f"Unknown rating system: {system_name}")
     
     return _evaluate(rating_system, inputs._c_inputs, &metrics[0])
+
+cpdef sweep(str system_name, Dataset dataset, np.ndarray[double, ndim=2] hyper_params):
+    cdef RatingSystem rating_system
+    if system_name == "elo":
+        rating_system = _online_elo
+    elif system_name == "glicko":
+        rating_system = _online_glicko
+    elif system_name == "trueskill":
+        rating_system = _online_trueskill
+    else:
+        raise ValueError(f"Unknown rating system: {system_name}")
+
+    cdef np.ndarray[double, ndim=2] metrics = np.zeros((dataset.num_matchups, hyper_params.shape[0]), dtype=np.float64)
+
