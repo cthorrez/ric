@@ -5,9 +5,9 @@
 
 void online_elo(ModelInputs model_inputs)
 {
-    const int (*matchups)[2] = model_inputs.dataset->matchups;
-    double* outcomes = model_inputs.dataset->outcomes;
-    const int num_matchups = model_inputs.dataset->num_matchups;
+    const int (*matchups)[2] = model_inputs.dataset.matchups;
+    double* outcomes = model_inputs.dataset.outcomes;
+    const int num_matchups = model_inputs.dataset.num_matchups;
     double* ratings = model_inputs.model_params[0];
     double* probs = model_inputs.probs;
     double k = model_inputs.hyper_params[0];

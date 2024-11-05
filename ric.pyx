@@ -11,7 +11,7 @@ cdef extern from "src/ric.h":
         int num_competitors
     
     ctypedef struct _ModelInputs "ModelInputs":
-        _Dataset* dataset
+        _Dataset dataset
         double** model_params
         double* hyper_params
         double* probs
@@ -41,7 +41,7 @@ def online_elo(
     cdef np.ndarray[double, ndim=1] hyper_params = np.array([k, scale, base], dtype=np.float64)
     cdef _Dataset dataset = _Dataset(<int (*)[2]>matchups.data, NULL, <double*>outcomes.data, num_matchups, num_competitors)
     cdef double* ratings_ptr = &ratings[0,0]
-    cdef _ModelInputs inputs = _ModelInputs(&dataset, &ratings_ptr, &hyper_params[0], &probs[0])
+    cdef _ModelInputs inputs = _ModelInputs(dataset, &ratings_ptr, &hyper_params[0], &probs[0])
     _online_elo(inputs)
     return ratings[:,0], probs
 
@@ -65,7 +65,7 @@ def online_glicko(
     cdef double** params_ptr = <double**>malloc(2 * sizeof(double*))
     params_ptr[0] = <double*>ratings.data
     params_ptr[1] = <double*>rd2s.data
-    cdef _ModelInputs inputs = _ModelInputs(&dataset, params_ptr, &hyper_params[0], &probs[0])
+    cdef _ModelInputs inputs = _ModelInputs(dataset, params_ptr, &hyper_params[0], &probs[0])
     _online_glicko(inputs)
     free(params_ptr)
     return ratings, np.sqrt(rd2s), probs
@@ -90,7 +90,7 @@ cpdef online_trueskill(
     cdef double** params_ptr = <double**>malloc(2 * sizeof(double*))
     params_ptr[0] = <double*>mus.data
     params_ptr[1] = <double*>sigma2s.data
-    cdef _ModelInputs inputs = _ModelInputs(&dataset, params_ptr, &hyper_params[0], &probs[0])
+    cdef _ModelInputs inputs = _ModelInputs(dataset, params_ptr, &hyper_params[0], &probs[0])
     _online_trueskill(inputs)
     free(params_ptr)
     return mus, np.sqrt(sigma2s), probs
@@ -126,7 +126,7 @@ cdef class ModelInputs:
 
     def __cinit__(self, Dataset dataset, np.ndarray[double, ndim=2] model_params, 
                   np.ndarray[double, ndim=1] hyper_params, np.ndarray[double, ndim=1] probs=None):
-        self._c_inputs.dataset = &dataset._c_dataset
+        self._c_inputs.dataset = dataset._c_dataset
         
         # Allocate and set model_params pointer
         self._params_ptr = <double**>malloc(2 * sizeof(double*))

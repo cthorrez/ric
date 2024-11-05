@@ -52,9 +52,9 @@ void online_trueskill(ModelInputs model_inputs)
  */
 {
     // Dataset fields
-    const int (*matchups)[2] = model_inputs.dataset->matchups;
-    const double* outcomes = model_inputs.dataset->outcomes;
-    const int num_matchups = model_inputs.dataset->num_matchups;
+    const int (*matchups)[2] = model_inputs.dataset.matchups;
+    const double* outcomes = model_inputs.dataset.outcomes;
+    const int num_matchups = model_inputs.dataset.num_matchups;
      
     // Model parameters
     double* mus = model_inputs.model_params[0];

@@ -10,7 +10,7 @@ typedef struct {
 } Dataset;
 
 typedef struct{
-    Dataset* dataset;
+    Dataset dataset;
     double** model_params;
     double* hyper_params;
     double* probs;
@@ -38,6 +38,7 @@ double evaluate(
 
 void param_sweep(
     RatingSystem model,
+    Dataset dataset,
     double** param_sets,
     int n_trials,
     int n_params,

@@ -30,11 +30,11 @@ void online_glicko(ModelInputs model_inputs)
  *   probs[num_matchups]: output probabilities for each match
  */
 {
-    const int (*matchups)[2] = model_inputs.dataset->matchups;
-    const int* time_steps = model_inputs.dataset->time_steps;
-    const double* outcomes = model_inputs.dataset->outcomes;
-    const int num_matchups = model_inputs.dataset->num_matchups;
-    const int num_competitors = model_inputs.dataset->num_competitors;
+    const int (*matchups)[2] = model_inputs.dataset.matchups;
+    const int* time_steps = model_inputs.dataset.time_steps;
+    const double* outcomes = model_inputs.dataset.outcomes;
+    const int num_matchups = model_inputs.dataset.num_matchups;
+    const int num_competitors = model_inputs.dataset.num_competitors;
     double* ratings = model_inputs.model_params[0];
     double* rd2s = model_inputs.model_params[1];
     double* probs = model_inputs.probs;

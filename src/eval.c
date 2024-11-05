@@ -27,7 +27,7 @@ double evaluate(
 )
 {
     model(model_inputs);
-    compute_metrics(model_inputs.probs, model_inputs.dataset->outcomes, metrics, model_inputs.dataset->num_matchups);
+    compute_metrics(model_inputs.probs, model_inputs.dataset.outcomes, metrics, model_inputs.dataset.num_matchups);
     return metrics[0];
 }
 
