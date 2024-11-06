@@ -5,6 +5,25 @@
 #include "ric.h"
 
 
+double* construct_glicko_ratings(ModelInputs model_inputs)
+{
+    // Allocate memory for both ratings and rd2s in contiguous block
+    double* memory = malloc(2 * model_inputs.num_competitors * sizeof(double));
+    double* ratings = memory;
+    double* rd2s = memory + model_inputs.num_competitors;
+    
+    double initial_r = model_inputs.hyper_params[0];
+    double initial_rd = model_inputs.hyper_params[1];
+    double initial_rd2 = initial_rd * initial_rd;
+    
+    for (int i = 0; i < model_inputs.num_competitors; i++) {
+        ratings[i] = initial_r;
+        rd2s[i] = initial_rd2;
+    }
+    
+    return memory;
+}
+
 
 double g(const double rd2, const double three_q2_over_pi2){
     return 1.0 / sqrt(1.0 + (rd2 * three_q2_over_pi2));
@@ -14,32 +33,20 @@ double calc_prob(const double logit, const double g_opp) {
     return 1.0 / (1.0 + exp(logit * g_opp));
 }
 
-void online_glicko(ModelInputs model_inputs)
-/*
- * Updates Glicko ratings based on match outcomes
- * 
- * @param model_inputs Structure containing:
- *   dataset:
- *     - matchups[num_matchups][2]: pairs of competitor indices
- *     - time_steps[num_matchups]: time step for each match
- *     - outcomes[num_matchups]: match results
- *   model_params:
- *     - [0]: ratings[num_competitors]: rating for each competitor
- *     - [1]: rd2s[num_competitors]: rating deviation squared
- *   hyper_params: [max_rd, c, scale, base]
- *   probs[num_matchups]: output probabilities for each match
- */
+ModelOutputs online_glicko(Dataset dataset, ModelInputs model_inputs)
 {
-    const int (*matchups)[2] = model_inputs.dataset.matchups;
-    const int* time_steps = model_inputs.dataset.time_steps;
-    const double* outcomes = model_inputs.dataset.outcomes;
-    const int num_matchups = model_inputs.dataset.num_matchups;
-    const int num_competitors = model_inputs.dataset.num_competitors;
-    double* ratings = model_inputs.model_params[0];
-    double* rd2s = model_inputs.model_params[1];
-    double* probs = model_inputs.probs;
+    const int (*matchups)[2] = dataset.matchups;
+    const int* time_steps = dataset.time_steps;
+    const double* outcomes = dataset.outcomes;
+    const int num_matchups = dataset.num_matchups;
+    
+    // Call initializer to get ratings and rd2s
+    double* ratings_memory = construct_glicko_ratings(model_inputs);
+    double* ratings = ratings_memory;
+    double* rd2s = ratings_memory + model_inputs.num_competitors;
+    double* probs = malloc(num_matchups * sizeof(double));
     const double* h = model_inputs.hyper_params;
-    const double max_rd = h[0], c = h[1], scale = h[2], base = h[3];
+    const double max_rd = h[1], c = h[2], scale = h[3], base = h[4];
 
 
     int idx_a, idx_b, last_played_a, last_played_b;
@@ -49,7 +56,7 @@ void online_glicko(ModelInputs model_inputs)
     const double c2 = c * c;
     const double three_q2_over_pi2 = (3.0 * q2) / M_PI;
     const double max_rd2 = max_rd * max_rd;
-    int* last_played = (int*)calloc(num_competitors, sizeof(int));
+    int* last_played = (int*)calloc(model_inputs.num_competitors, sizeof(int));
 
     for (int i = 0; i < num_matchups; i++) {
         idx_a = matchups[i][0];
@@ -96,4 +103,6 @@ void online_glicko(ModelInputs model_inputs)
         last_played[idx_b] = time_steps[i];
     }
     free(last_played);
+    ModelOutputs model_outputs = {probs, ratings_memory};
+    return model_outputs;
 }

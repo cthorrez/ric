@@ -6,21 +6,23 @@ typedef struct {
     int* time_steps;
     double* outcomes;
     int num_matchups;
-    int num_competitors;
 } Dataset;
 
 typedef struct{
-    Dataset dataset;
-    double** model_params;
     double* hyper_params;
-    double* probs;
+    int num_competitors;
 } ModelInputs;
 
-void online_elo(ModelInputs model_inputs);
-void online_glicko(ModelInputs model_inputs);
-void online_trueskill(ModelInputs model_inputs);
+typedef struct{
+    double* probs;
+    double* ratings;
+} ModelOutputs;
 
-typedef void (*RatingSystem)(ModelInputs model_inputs);
+ModelOutputs online_elo(Dataset dataset, ModelInputs model_inputs);
+ModelOutputs online_glicko(Dataset dataset, ModelInputs model_inputs);
+// ModelOutputs online_trueskill(Dataset dataset, ModelInputs model_inputs);
+
+typedef ModelOutputs (*RatingSystem)(Dataset dataset, ModelInputs model_inputs);
 
 void compute_metrics(
     double probs[],
@@ -31,19 +33,19 @@ void compute_metrics(
 
 double evaluate(
     RatingSystem model,
+    Dataset dataset,
     ModelInputs model_inputs,
     double metrics[3]
 );
 
-
-void param_sweep(
-    RatingSystem model,
-    Dataset dataset,
-    double** param_sets,
-    int n_trials,
-    int n_params,
-    double* best_params,
-    double* best_metric
-);
+// void param_sweep(
+//     RatingSystem model,
+//     Dataset dataset,
+//     double** param_sets,
+//     int n_trials,
+//     int n_params,
+//     double* best_params,
+//     double* best_metric
+// );
 
 #endif

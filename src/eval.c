@@ -22,31 +22,29 @@ void compute_metrics(
 
 double evaluate(
     RatingSystem model,
+    Dataset dataset,
     ModelInputs model_inputs,
     double metrics[3]
 )
 {
-    model(model_inputs);
-    compute_metrics(model_inputs.probs, model_inputs.dataset.outcomes, metrics, model_inputs.dataset.num_matchups);
+    ModelOutputs model_outputs = model(dataset, model_inputs);
+    compute_metrics(model_outputs.probs, dataset.outcomes, metrics, dataset.num_matchups);
     return metrics[0];
 }
 
 
 // void param_sweep(
-//     RatingSystem model,      // function pointer to model
-//     double** param_sets,     // array of parameter sets [n_trials][n_params]
-//     int n_trials,           // number of trials (100 in your case)
-//     int n_params,           // number of params this model uses
-//     double* best_params,    // output: best params found
-//     double* best_metric     // output: best metric found
+//     RatingSystem model,
+//     Dataset dataset,
+//     double** param_sets,
+//     int n_trials,
+//     int n_params,
+//     double* best_params,
+//     double* best_metric
 // ) {
 //     *best_metric = INFINITY;  // assuming higher is better
     
 //     for (int trial = 0; trial < n_trials; trial++) {
-//         double metric = model(param_sets[trial]);
-//         if (metric < *best_metric) {
-//             *best_metric = metric;
-//             memcpy(best_params, param_sets[trial], n_params * sizeof(double));
-//         }
+//         // TODO: instantiate the proper ModelInputs
 //     }
 // }

@@ -36,7 +36,7 @@ void v_w_draw(const double t, const double epsilon, double* v, double* w){
     *w = ((e_m_t * pdf_m) + (e_p_t * pdf_p)) / denom;
 }
 
-void online_trueskill(ModelInputs model_inputs)
+void online_trueskill(Dataset dataset, ModelInputs model_inputs)
 /*
  * Updates TrueSkill ratings based on match outcomes
  * 
@@ -52,9 +52,9 @@ void online_trueskill(ModelInputs model_inputs)
  */
 {
     // Dataset fields
-    const int (*matchups)[2] = model_inputs.dataset.matchups;
-    const double* outcomes = model_inputs.dataset.outcomes;
-    const int num_matchups = model_inputs.dataset.num_matchups;
+    const int (*matchups)[2] = dataset.matchups;
+    const double* outcomes = dataset.outcomes;
+    const int num_matchups = dataset.num_matchups;
      
     // Model parameters
     double* mus = model_inputs.model_params[0];
