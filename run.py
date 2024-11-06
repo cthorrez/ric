@@ -7,14 +7,14 @@ from riix.utils.data_utils import MatchupDataset
 from ric import online_elo, online_glicko, online_trueskill # , compute_metrics, evaluate, ModelInputs, Dataset
 
 def main():
-    game = 'smash_melee'
+    # game = 'smash_melee'
     # game = 'league_of_legends'
     # game = 'tetris'
-    df = load_dataset('EsportsBench/EsportsBench', split=game).to_polars().filter(pl.col('outcome') != 0.5)
-    competitor_cols = ['competitor_1', 'competitor_2']
+    # df = load_dataset('EsportsBench/EsportsBench', split=game).to_polars().filter(pl.col('outcome') != 0.5)
+    # competitor_cols = ['competitor_1', 'competitor_2']
 
-    # df = pl.read_csv('~/Downloads/chartslp.csv')
-    # competitor_cols=['player_1_code', 'player_2_code']
+    df = pl.read_csv('~/Downloads/chartslp.csv')
+    competitor_cols=['player_1_code', 'player_2_code']
 
     dataset = MatchupDataset(
         df=df,
