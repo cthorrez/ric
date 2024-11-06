@@ -19,6 +19,8 @@ cdef extern from "src/ric.h":
     
     _ModelOutputs _online_elo "online_elo" (_Dataset, _ModelInputs)
     _ModelOutputs _online_glicko "online_glicko" (_Dataset, _ModelInputs)
+    _ModelOutputs _online_trueskill "online_trueskill" (_Dataset, _ModelInputs)
+
 
     ctypedef _ModelOutputs (*RatingSystem)(_Dataset, _ModelInputs)
     void _compute_metrics "compute_metrics" (double[], double[], double[3], int)
@@ -101,29 +103,41 @@ def online_glicko(
     return ratings, rd2s, probs
 
 
-# cpdef online_trueskill(
-#     np.ndarray[int, ndim=2] matchups,
-#     np.ndarray[double, ndim=1] outcomes,
-#     int num_matchups,
-#     int num_competitors,
-#     double initial_mu=25.0,
-#     double initial_sigma=8.33,
-#     double beta=4.166,
-#     double tau=0.0833,
-#     double epsilon=0.0001
-# ):
-#     cdef np.ndarray[double, ndim=1] mus = np.full(num_competitors, initial_mu, dtype=np.float64)
-#     cdef np.ndarray[double, ndim=1] sigma2s = np.full(num_competitors, initial_sigma*initial_sigma, dtype=np.float64)
-#     cdef np.ndarray[double, ndim=1] probs = np.zeros(num_matchups, dtype=np.float64)
-#     cdef np.ndarray[double, ndim=1] hyper_params = np.array([beta, tau, epsilon], dtype=np.float64)
-#     cdef _Dataset dataset = _Dataset(<int (*)[2]>matchups.data, NULL, <double*>outcomes.data, num_matchups, num_competitors)
-#     cdef double** params_ptr = <double**>malloc(2 * sizeof(double*))
-#     params_ptr[0] = <double*>mus.data
-#     params_ptr[1] = <double*>sigma2s.data
-#     cdef _ModelInputs inputs = _ModelInputs(dataset, params_ptr, &hyper_params[0], &probs[0])
-#     _online_trueskill(inputs)
-#     free(params_ptr)
-#     return mus, np.sqrt(sigma2s), probs
+def online_trueskill(
+    np.ndarray[int, ndim=2] matchups,
+    np.ndarray[double, ndim=1] outcomes,
+    int num_competitors,
+    double initial_mu=25.0,
+    double initial_sigma=8.33,
+    double beta=4.166,
+    double tau=0.0833,
+    double epsilon=0.0001,
+):
+    cdef int num_matchups = matchups.shape[0]
+    
+    # Create dataset struct
+    cdef _Dataset dataset
+    dataset.matchups = <int (*)[2]>matchups.data
+    dataset.outcomes = <double*>outcomes.data
+    dataset.time_steps = NULL
+    dataset.num_matchups = num_matchups
+    
+    # Create model inputs struct
+    cdef np.ndarray[double, ndim=1] hyper_params = np.array([initial_mu, initial_sigma, beta, tau, epsilon], dtype=np.float64)
+    cdef _ModelInputs model_inputs
+    model_inputs.hyper_params = <double*>hyper_params.data
+    model_inputs.num_competitors = num_competitors
+    
+    cdef _ModelOutputs outputs = _online_trueskill(dataset, model_inputs)
+    
+    cdef np.npy_intp ratings_dim = num_competitors
+    cdef np.npy_intp probs_dim = num_matchups
+    
+    mus = np.PyArray_SimpleNewFromData(1, &ratings_dim, np.NPY_DOUBLE, outputs.ratings)
+    sigma2s = np.PyArray_SimpleNewFromData(1, &ratings_dim, np.NPY_DOUBLE, outputs.ratings + num_competitors)
+    probs = np.PyArray_SimpleNewFromData(1, &probs_dim, np.NPY_DOUBLE, outputs.probs)
+    
+    return mus, np.sqrt(sigma2s), probs
 
 # def compute_metrics(
 #     np.ndarray[double, ndim=1] probs,

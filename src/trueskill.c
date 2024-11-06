@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -36,37 +37,41 @@ void v_w_draw(const double t, const double epsilon, double* v, double* w){
     *w = ((e_m_t * pdf_m) + (e_p_t * pdf_p)) / denom;
 }
 
-void online_trueskill(Dataset dataset, ModelInputs model_inputs)
-/*
- * Updates TrueSkill ratings based on match outcomes
- * 
- * @param model_inputs:
- *   dataset:
- *     - matchups[num_matchups][2]: pairs of competitor indices
- *     - outcomes[num_matchups]: match results (0, 0.5, or 1)
- *   model_params:
- *     - [0]: mus[num_competitors]: skill mean for each competitor
- *     - [1]: sigma2s[num_competitors]: skill variance
- *   hyper_params: [beta, tau, epsilon]
- *   probs[num_matchups]: output probabilities for each match
- */
+
+double* construct_trueskill_ratings(ModelInputs model_inputs)
 {
-    // Dataset fields
+    // Allocate memory for both mus and sigma2s in contiguous block
+    double* memory = malloc(2 * model_inputs.num_competitors * sizeof(double));
+    double* mus = memory;
+    double* sigma2s = memory + model_inputs.num_competitors;
+    
+    double initial_mu = model_inputs.hyper_params[0];
+    double initial_sigma = model_inputs.hyper_params[1];
+    double initial_sigma2 = initial_sigma * initial_sigma;
+    
+    for (int i = 0; i < model_inputs.num_competitors; i++) {
+        mus[i] = initial_mu;
+        sigma2s[i] = initial_sigma2;
+    }
+    
+    return memory;
+}
+
+ModelOutputs online_trueskill(Dataset dataset, ModelInputs model_inputs)
+{
     const int (*matchups)[2] = dataset.matchups;
     const double* outcomes = dataset.outcomes;
     const int num_matchups = dataset.num_matchups;
-     
-    // Model parameters
-    double* mus = model_inputs.model_params[0];
-    double* sigma2s = model_inputs.model_params[1];
     
-    // Output array
-    double* probs = model_inputs.probs;
+    // Call initializer to get mus and sigma2s
+    double* ratings_memory = construct_trueskill_ratings(model_inputs);
+    double* mus = ratings_memory;
+    double* sigma2s = ratings_memory + model_inputs.num_competitors;
+    double* probs = malloc(num_matchups * sizeof(double));
     
-    // Hyperparameters
     const double* h = model_inputs.hyper_params;
-    const double beta = h[0], tau = h[1], epsilon = h[2];
-
+    const double beta = h[2], tau = h[3], epsilon = h[4];
+    
     double c2, c, z, eps_over_c, w, v, step_a, step_b, sign;
     int idx_a, idx_b;
     const double tau2 = tau * tau;
@@ -102,4 +107,6 @@ void online_trueskill(Dataset dataset, ModelInputs model_inputs)
         sigma2s[idx_a] = fmax(1e-6, sigma2s[idx_a] - step_a * step_a * w);
         sigma2s[idx_b] = fmax(1e-6, sigma2s[idx_b] - step_b * step_b * w);
     }
+    ModelOutputs model_outputs = {probs, ratings_memory};
+    return model_outputs;
 }

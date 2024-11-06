@@ -5,6 +5,14 @@
 #include "ric.h"
 
 
+double g(const double rd2, const double three_q2_over_pi2){
+    return 1.0 / sqrt(1.0 + (rd2 * three_q2_over_pi2));
+}
+
+double calc_prob(const double logit, const double g_opp) {
+    return 1.0 / (1.0 + exp(logit * g_opp));
+}
+
 double* construct_glicko_ratings(ModelInputs model_inputs)
 {
     // Allocate memory for both ratings and rd2s in contiguous block
@@ -22,15 +30,6 @@ double* construct_glicko_ratings(ModelInputs model_inputs)
     }
     
     return memory;
-}
-
-
-double g(const double rd2, const double three_q2_over_pi2){
-    return 1.0 / sqrt(1.0 + (rd2 * three_q2_over_pi2));
-}
-
-double calc_prob(const double logit, const double g_opp) {
-    return 1.0 / (1.0 + exp(logit * g_opp));
 }
 
 ModelOutputs online_glicko(Dataset dataset, ModelInputs model_inputs)

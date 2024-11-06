@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import online_elo, online_glicko # , compute_metrics, online_trueskill, evaluate, ModelInputs, Dataset
+from ric import online_elo, online_glicko, online_trueskill # , compute_metrics, evaluate, ModelInputs, Dataset
 
 def main():
     game = 'smash_melee'
@@ -92,30 +92,31 @@ def main():
     # print(f'Glicko (acc, log_loss, brier_score): {acc:.4f}, {log_loss:.4f}, {brier_score:.4f}')
 
 
-    # print('\nrunning TrueSkill')
-    # # I tuned these a little bit
-    # initial_mu = 25.0
-    # initial_sigma = 2.0
-    # beta = 1.0
-    # tau = 0.25
-    # epsilon = 0.0
-    # start_time = time.time()
-    # mus, sigmas, probs = online_trueskill(
-    #     matchups,
-    #     outcomes,
-    #     num_matchups,
-    #     num_competitors,
-    #     initial_mu,
-    #     initial_sigma,
-    #     beta,
-    #     tau,
-    #     epsilon
-    # )
-    # end_time = time.time()
-    # print(f'online TrueSkill duration (s): {end_time-start_time:.4f}')
-    # print(f'{mus.min()=}, {mus.max()=}, {mus.mean()=}')
-    # print(f'{sigmas.min()=}, {sigmas.max()=}, {sigmas.mean()=}')
-    # print(f'{probs.min()=}, {probs.max()=}, {probs.mean()=}')
+    print('\nrunning TrueSkill')
+    # I tuned these a little bit
+    initial_mu = 25.0
+    initial_sigma = 2.0
+    beta = 1.0
+    tau = 0.25
+    epsilon = 0.0
+    start_time = time.time()
+    mus, sigmas, probs = online_trueskill(
+        matchups,
+        outcomes,
+        num_competitors,
+        initial_mu,
+        initial_sigma,
+        beta,
+        tau,
+        epsilon
+    )
+    end_time = time.time()
+    print(f'online TrueSkill duration (s): {end_time-start_time:.4f}')
+    print(f'{mus.min()=}, {mus.max()=}, {mus.mean()=}')
+    print(f'{sigmas.min()=}, {sigmas.max()=}, {sigmas.mean()=}')
+    print(f'{probs.min()=}, {probs.max()=}, {probs.mean()=}')
+    acc = ((probs >= 0.5) == outcomes).mean()
+    print(f'TrueSkill acc: {acc}')
     # acc, log_loss, brier_score = compute_metrics(probs, outcomes)
     # print(f'TrueSkill (acc, log_loss, brier_score): {acc:.4f}, {log_loss:.4f}, {brier_score:.4f}')
 

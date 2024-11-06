@@ -20,7 +20,7 @@ typedef struct{
 
 ModelOutputs online_elo(Dataset dataset, ModelInputs model_inputs);
 ModelOutputs online_glicko(Dataset dataset, ModelInputs model_inputs);
-// ModelOutputs online_trueskill(Dataset dataset, ModelInputs model_inputs);
+ModelOutputs online_trueskill(Dataset dataset, ModelInputs model_inputs);
 
 typedef ModelOutputs (*RatingSystem)(Dataset dataset, ModelInputs model_inputs);
 

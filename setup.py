@@ -8,7 +8,7 @@ ext = Extension(
         "ric.pyx",
         "src/elo.c",
         "src/glicko.c",
-        # "src/trueskill.c",
+        "src/trueskill.c",
         # "src/eval.c"
     ],
     include_dirs=[np.get_include(), "src"],
