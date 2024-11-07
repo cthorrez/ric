@@ -18,6 +18,11 @@ typedef struct{
     double* ratings;
 } ModelOutputs;
 
+typedef struct{
+    double* best_metrics;
+    ModelInputs best_inputs;
+} SweepOutputs;
+
 ModelOutputs online_elo(Dataset dataset, ModelInputs model_inputs);
 ModelOutputs online_glicko(Dataset dataset, ModelInputs model_inputs);
 ModelOutputs online_trueskill(Dataset dataset, ModelInputs model_inputs);
@@ -31,21 +36,18 @@ void compute_metrics(
     int n
 );
 
-double evaluate(
+double* evaluate(
     RatingSystem model,
     Dataset dataset,
     ModelInputs model_inputs,
     double metrics[3]
 );
 
-// void param_sweep(
-//     RatingSystem model,
-//     Dataset dataset,
-//     double** param_sets,
-//     int n_trials,
-//     int n_params,
-//     double* best_params,
-//     double* best_metric
-// );
+SweepOutputs sweep(
+    RatingSystem model,
+    Dataset dataset,
+    ModelInputs* sweep_inputs,
+    int num_sweep_inputs
+);
 
 #endif

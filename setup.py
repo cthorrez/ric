@@ -9,7 +9,7 @@ ext = Extension(
         "src/elo.c",
         "src/glicko.c",
         "src/trueskill.c",
-        # "src/eval.c"
+        "src/eval.c"
     ],
     include_dirs=[np.get_include(), "src"],
     define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
@@ -19,9 +19,10 @@ ext = Extension(
         "-mavx",
         "-mavx2",
         "-mfma",
-        "-ffast-math"
+        "-ffast-math",
+        "-fopenmp",
     ],
-    extra_link_args=["-lm"]
+    extra_link_args=["-lm", "-fopenmp"]
 )
 
 setup(

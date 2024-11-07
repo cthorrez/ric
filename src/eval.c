@@ -1,5 +1,7 @@
+#include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
+#include <omp.h>
 #include "ric.h"
 
 void compute_metrics(
@@ -20,7 +22,7 @@ void compute_metrics(
     metrics[2] = metrics[2] / n;
 }
 
-double evaluate(
+double* evaluate(
     RatingSystem model,
     Dataset dataset,
     ModelInputs model_inputs,
@@ -29,22 +31,56 @@ double evaluate(
 {
     ModelOutputs model_outputs = model(dataset, model_inputs);
     compute_metrics(model_outputs.probs, dataset.outcomes, metrics, dataset.num_matchups);
-    return metrics[0];
+    free(model_outputs.probs);
+    free(model_outputs.ratings);
+    return metrics;
 }
 
-
-// void param_sweep(
-//     RatingSystem model,
-//     Dataset dataset,
-//     double** param_sets,
-//     int n_trials,
-//     int n_params,
-//     double* best_params,
-//     double* best_metric
-// ) {
-//     *best_metric = INFINITY;  // assuming higher is better
+SweepOutputs sweep(
+    RatingSystem model,
+    Dataset dataset,
+    ModelInputs* sweep_inputs,
+    int num_sweep_inputs
+) {
+    omp_set_num_threads(24);
+    double best_metric = INFINITY;
+    double* best_metrics = malloc(3 * sizeof(double));
+    ModelInputs best_inputs = sweep_inputs[0];
     
-//     for (int trial = 0; trial < n_trials; trial++) {
-//         // TODO: instantiate the proper ModelInputs
-//     }
-// }
+    #pragma omp parallel
+    {
+        double local_best_metric = -INFINITY;
+        double local_metrics[3];
+        ModelInputs local_best_inputs = sweep_inputs[0];
+        double* local_best_metrics = malloc(3 * sizeof(double));
+        
+        #pragma omp for
+        for (int i = 0; i < num_sweep_inputs; i++) {
+            evaluate(model, dataset, sweep_inputs[i], local_metrics);
+            if ((local_metrics[0] > local_best_metric) & (local_metrics[1] > 0)) {
+                local_best_metric = local_metrics[0];
+                for(int j = 0; j < 3; j++) {
+                    local_best_metrics[j] = local_metrics[j];
+                }
+                local_best_inputs = sweep_inputs[i];
+            }
+        }
+        
+        // Critical section to update global best
+        #pragma omp critical
+        {
+            if (local_best_metric < best_metric) {
+                best_metric = local_best_metric;
+                for(int j = 0; j < 3; j++) {
+                    best_metrics[j] = local_best_metrics[j];
+                }
+                best_inputs = local_best_inputs;
+            }
+        }
+        
+        free(local_best_metrics);
+    }
+    
+    SweepOutputs outputs = {best_metrics, best_inputs};
+    return outputs;
+}

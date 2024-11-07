@@ -16,6 +16,10 @@ cdef extern from "src/ric.h":
     ctypedef struct _ModelOutputs "ModelOutputs":
         double* ratings
         double* probs
+
+    ctypedef struct _SweepOutputs "SweepOutputs":
+        double* best_metrics
+        _ModelInputs best_inputs
     
     _ModelOutputs _online_elo "online_elo" (_Dataset, _ModelInputs)
     _ModelOutputs _online_glicko "online_glicko" (_Dataset, _ModelInputs)
@@ -24,7 +28,7 @@ cdef extern from "src/ric.h":
 
     ctypedef _ModelOutputs (*RatingSystem)(_Dataset, _ModelInputs)
     void _compute_metrics "compute_metrics" (double[], double[], double[3], int)
-    double _evaluate "evaluate" (RatingSystem, _Dataset, _ModelInputs, double[3])
+    _SweepOutputs _sweep "sweep" (RatingSystem, _Dataset, _ModelInputs*, int)
 
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
@@ -100,7 +104,7 @@ def online_glicko(
     rd2s = np.PyArray_SimpleNewFromData(1, &ratings_dim, np.NPY_DOUBLE, outputs.ratings + num_competitors)
     probs = np.PyArray_SimpleNewFromData(1, &probs_dim, np.NPY_DOUBLE, outputs.probs)
     
-    return ratings, rd2s, probs
+    return ratings, np.sqrt(rd2s), probs
 
 
 def online_trueskill(
@@ -139,42 +143,70 @@ def online_trueskill(
     
     return mus, np.sqrt(sigma2s), probs
 
-# def compute_metrics(
-#     np.ndarray[double, ndim=1] probs,
-#     np.ndarray[double, ndim=1] outcomes,
-# ):
-#     cdef np.ndarray[double, ndim=1] metrics = np.zeros(3, dtype=np.float64)
-#     _compute_metrics(&probs[0], &outcomes[0], &metrics[0], probs.shape[0])
-#     return metrics
+def compute_metrics(
+    np.ndarray[double, ndim=1] probs,
+    np.ndarray[double, ndim=1] outcomes,
+):
+    cdef np.ndarray[double, ndim=1] metrics = np.zeros(3, dtype=np.float64)
+    _compute_metrics(&probs[0], &outcomes[0], &metrics[0], probs.shape[0])
+    return metrics
 
 
-# cpdef evaluate(str system_name, ModelInputs inputs):
-#     cdef RatingSystem rating_system
-#     cdef np.ndarray[double, ndim=1] metrics = np.zeros(3, dtype=np.float64)
+
+def sweep(
+    str system_name,
+    np.ndarray[int, ndim=2] matchups,
+    np.ndarray[int, ndim=1] time_steps,
+    np.ndarray[double, ndim=1] outcomes,
+    int num_competitors,
+    np.ndarray[double, ndim=2] param_grid  # Each row is a set of hyperparameters
+):
+    cdef RatingSystem rating_system
+    if system_name == "elo":
+        rating_system = _online_elo
+    elif system_name == "glicko":
+        rating_system = _online_glicko
+    elif system_name == "trueskill":
+        rating_system = _online_trueskill
+    else:
+        raise ValueError(f"Unknown rating system: {system_name}")
     
-#     if system_name == "elo":
-#         rating_system = _online_elo
-#     elif system_name == "glicko":
-#         rating_system = _online_glicko
-#     elif system_name == "trueskill":
-#         rating_system = _online_trueskill
-#     else:
-#         raise ValueError(f"Unknown rating system: {system_name}")
+    # Create dataset struct
+    cdef _Dataset dataset
+    dataset.matchups = <int (*)[2]>matchups.data
+    dataset.time_steps = <int*>time_steps.data if time_steps is not None else NULL
+    dataset.outcomes = <double*>outcomes.data
+    dataset.num_matchups = matchups.shape[0]
+
+    # Create array of ModelInputs for each parameter combination
+    cdef int num_sweep_inputs = param_grid.shape[0]
+    cdef _ModelInputs* sweep_inputs = <_ModelInputs*>malloc(num_sweep_inputs * sizeof(_ModelInputs))
     
-#     return _evaluate(rating_system, inputs._c_inputs, &metrics[0])
-
-# cpdef sweep(str system_name, Dataset dataset, np.ndarray[double, ndim=2] hyper_params):
-#     cdef RatingSystem rating_system
-#     if system_name == "elo":
-#         rating_system = _online_elo
-#     elif system_name == "glicko":
-#         rating_system = _online_glicko
-#     elif system_name == "trueskill":
-#         rating_system = _online_trueskill
-#     else:
-#         raise ValueError(f"Unknown rating system: {system_name}")
-
-#     cdef np.ndarray[double, ndim=2] metrics = np.zeros((dataset.num_matchups, hyper_params.shape[0]), dtype=np.float64)
+    # Setup each ModelInputs struct
+    for i in range(num_sweep_inputs):
+        sweep_inputs[i].num_competitors = num_competitors
+        sweep_inputs[i].hyper_params = &param_grid[i,0]
+    
+    # Call C sweep function
+    cdef _SweepOutputs outputs = _sweep(
+        rating_system,
+        dataset,
+        sweep_inputs,
+        num_sweep_inputs
+    )
+    
+    # Extract best parameters
+    cdef int num_params = param_grid.shape[1]
+    cdef np.ndarray[double, ndim=1] best_params = np.zeros(num_params, dtype=np.float64)
+    cdef np.ndarray[double, ndim=1] best_metrics = np.zeros(3, dtype=np.float64)  # [log_loss, brier, accuracy]
+    for i in range(num_params):
+        best_params[i] = outputs.best_inputs.hyper_params[i]
+    for i in range(3):
+        best_metrics[i] = outputs.best_metrics[i]
+    
+    free(sweep_inputs)
+    
+    return best_metrics, best_params
 
 
 # Create Python-accessible classes
