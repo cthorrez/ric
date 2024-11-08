@@ -43,22 +43,26 @@ SweepOutputs sweep(
     int num_sweep_inputs
 ) {
     omp_set_num_threads(24);
-    double best_metric = INFINITY;
+    double best_metric = INFINITY;  // Start with worst possible for minimization
     double* best_metrics = malloc(3 * sizeof(double));
     ModelInputs best_inputs = sweep_inputs[0];
     
     #pragma omp parallel
     {
-        double local_best_metric = -INFINITY;
+        double local_best_metric = INFINITY;  // Start with worst possible for minimization
         double local_metrics[3];
-        ModelInputs local_best_inputs = sweep_inputs[0];
-        double* local_best_metrics = malloc(3 * sizeof(double));
+        ModelInputs local_best_inputs;
+        double local_best_metrics[] = {0.0, INFINITY, INFINITY};
         
         #pragma omp for
         for (int i = 0; i < num_sweep_inputs; i++) {
             evaluate(model, dataset, sweep_inputs[i], local_metrics);
-            if ((local_metrics[0] > local_best_metric) & (local_metrics[1] > 0)) {
-                local_best_metric = local_metrics[0];
+            // Using log loss (metrics[1]) as the optimization target
+            // Check for numerical stability and improvement
+            if ((local_metrics[1] < local_best_metric) && 
+                (local_metrics[1] > 0) && 
+                (local_metrics[1] < 1000)) {
+                local_best_metric = local_metrics[1];  // Using log loss as primary metric
                 for(int j = 0; j < 3; j++) {
                     local_best_metrics[j] = local_metrics[j];
                 }
@@ -66,10 +70,9 @@ SweepOutputs sweep(
             }
         }
         
-        // Critical section to update global best
         #pragma omp critical
         {
-            if (local_best_metric < best_metric) {
+            if (local_best_metric < best_metric) {  // Consistent minimization
                 best_metric = local_best_metric;
                 for(int j = 0; j < 3; j++) {
                     best_metrics[j] = local_best_metrics[j];
@@ -77,8 +80,6 @@ SweepOutputs sweep(
                 best_inputs = local_best_inputs;
             }
         }
-        
-        free(local_best_metrics);
     }
     
     SweepOutputs outputs = {best_metrics, best_inputs};
