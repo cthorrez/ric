@@ -33,7 +33,8 @@ def main():
 
 
     rng = np.random.default_rng(seed=0)
-    num_sweep_inputs = 10000
+    num_sweep_inputs = 1000
+    num_threads = 24
     elo_sweep_inputs = np.empty((num_sweep_inputs,4))
     elo_sweep_inputs[:,0] = np.full(shape=(num_sweep_inputs), fill_value=1500) # in elo the initial rating does not matter
     elo_sweep_inputs[:,1] = rng.uniform(16.0, 64.0, size=(num_sweep_inputs,)) # ks
@@ -45,10 +46,11 @@ def main():
     best_metrics, best_params = sweep(
         system_name="elo",
         matchups=matchups,
-        time_steps=None,  # can be None for Elo
+        time_steps=None, # Elo does not use time info
         outcomes=outcomes,
         num_competitors=num_competitors,
-        param_grid=elo_sweep_inputs  # your 1000x4 array of parameters
+        param_grid=elo_sweep_inputs,
+        num_threads=num_threads,
     )
     duration = time.time() - start_time
     print(f'sweep duration (s): {duration:.4f}')
@@ -73,10 +75,11 @@ def main():
     best_metrics, best_params = sweep(
         system_name="glicko",
         matchups=matchups,
-        time_steps=time_steps,  # needed for Glicko
+        time_steps=time_steps, # time is needed for Glicko
         outcomes=outcomes,
         num_competitors=num_competitors,
-        param_grid=glicko_sweep_inputs  # your 1000x5 array of parameters
+        param_grid=glicko_sweep_inputs,
+        num_threads=num_threads,
     )
     duration = time.time() - start_time
     print(f'sweep duration (s): {duration:.4f}')
@@ -105,7 +108,8 @@ def main():
         time_steps=None,  # not needed for TrueSkill
         outcomes=outcomes,
         num_competitors=num_competitors,
-        param_grid=trueskill_sweep_inputs  # your 1000x5 array of parameters
+        param_grid=trueskill_sweep_inputs,
+        num_threads=num_threads,
     )
     duration = time.time() - start_time
     print(f'sweep duration (s): {duration:.4f}')
@@ -114,9 +118,9 @@ def main():
     print("Best parameters found:")
     print(f"  Initial rating: {best_params[0]}")
     print(f"  Initial sigma²: {best_params[1]}")
-    print(f"  β: {best_params[2]}")
-    print(f"  τ: {best_params[3]}")
-    print(f"  ε: {best_params[4]}")
+    print(f"  beta: {best_params[2]}")
+    print(f"  tau: {best_params[3]}")
+    print(f"  epsilon: {best_params[4]}")
 
 
 
@@ -125,3 +129,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

@@ -47,7 +47,8 @@ SweepOutputs sweep(
     RatingSystem model,
     Dataset dataset,
     ModelInputs* sweep_inputs,
-    int num_sweep_inputs
+    int num_sweep_inputs,
+    int num_threads
 );
 
 #endif

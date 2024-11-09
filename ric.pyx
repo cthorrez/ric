@@ -28,7 +28,7 @@ cdef extern from "src/ric.h":
 
     ctypedef _ModelOutputs (*RatingSystem)(_Dataset, _ModelInputs)
     void _compute_metrics "compute_metrics" (double[], double[], double[3], int)
-    _SweepOutputs _sweep "sweep" (RatingSystem, _Dataset, _ModelInputs*, int)
+    _SweepOutputs _sweep "sweep" (RatingSystem, _Dataset, _ModelInputs*, int, int)
 
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
@@ -159,7 +159,8 @@ def sweep(
     np.ndarray[int, ndim=1] time_steps,
     np.ndarray[double, ndim=1] outcomes,
     int num_competitors,
-    np.ndarray[double, ndim=2] param_grid  # Each row is a set of hyperparameters
+    np.ndarray[double, ndim=2] param_grid,  # Each row is a set of hyperparameters
+    int num_threads=24,
 ):
     cdef RatingSystem rating_system
     if system_name == "elo":
@@ -192,7 +193,8 @@ def sweep(
         rating_system,
         dataset,
         sweep_inputs,
-        num_sweep_inputs
+        num_sweep_inputs,
+        num_threads
     )
     
     # Extract best parameters
