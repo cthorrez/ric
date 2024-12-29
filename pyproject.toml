@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "Cython>=0.29.21", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ric"
+version = "0.0.1"  # adjust version as needed
+requires-python = ">=3.11"  # adjust as needed
+dependencies = ["numpy"]
+
+[tool.setuptools]
+packages = ["src"]
