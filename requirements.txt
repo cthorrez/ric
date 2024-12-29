@@ -1,5 +1,6 @@
 numpy
 cython
 polars
+matplotlib
 datasets
 riix==0.0.6

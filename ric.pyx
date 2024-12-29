@@ -258,7 +258,7 @@ def boot(
     np.ndarray[double, ndim=1] params,
     int num_bootstraps,
     int num_threads=10,
-    batch_size=10,
+    int batch_size=10,
     int seed=0,
 ):
     cdef RatingSystem rating_system
@@ -311,8 +311,11 @@ def boot(
         for j in range(effective_batch_size):
             ratings = np.PyArray_SimpleNewFromData(1, &ratings_dim, np.NPY_DOUBLE, outputs[j].ratings)
             all_ratings[start + j] = ratings
+            free(outputs[j].ratings)
+            free(outputs[j].probs)
 
         free(datasets)
+        free(outputs)
         start += effective_batch_size
 
     return all_ratings
