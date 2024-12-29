@@ -51,4 +51,25 @@ SweepOutputs sweep(
     int num_threads
 );
 
+
+// multithreaded multi fun functions:
+// 1. same dataset, array of model inputs
+// 2. same model inputs, array of datasets
+
+ModelOutputs* multi_dataset_fit(
+    RatingSystem model,
+    Dataset* datasets,
+    ModelInputs model_inputs,
+    int num_runs,
+    int num_threads
+);
+
+ModelOutputs* multi_params_fit(
+    RatingSystem model,
+    Dataset dataset,
+    ModelInputs* model_inputs,
+    int num_runs,
+    int num_threads
+);
+
 #endif

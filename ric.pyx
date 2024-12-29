@@ -30,6 +30,11 @@ cdef extern from "src/ric.h":
     void _compute_metrics "compute_metrics" (double[], double[], double[3], int)
     _SweepOutputs _sweep "sweep" (RatingSystem, _Dataset, _ModelInputs*, int, int)
 
+    # multi dataset/params functions:
+    _ModelOutputs* multi_dataset_fit "multi_dataset_fit" (RatingSystem, _Dataset*, _ModelInputs, int, int)
+    _ModelOutputs* multi_params_fit "multi_params_fit" (RatingSystem, _Dataset, _ModelInputs*, int, int)
+
+
 def online_elo(
     np.ndarray[int, ndim=2] matchups,
     np.ndarray[double, ndim=1] outcomes,
@@ -242,3 +247,72 @@ cdef class ModelOutputs:
         self._c_outputs.ratings = <double*>ratings.data
         self._c_outputs.probs = <double*>probs.data
         self._keep_alive = (ratings, probs)
+
+
+def boot(
+    str system_name,
+    np.ndarray[int, ndim=2] matchups,
+    np.ndarray[int, ndim=1] time_steps,
+    np.ndarray[double, ndim=1] outcomes,
+    int num_competitors,
+    np.ndarray[double, ndim=1] params,
+    int num_bootstraps,
+    int num_threads=10,
+    batch_size=10,
+    int seed=0,
+):
+    cdef RatingSystem rating_system
+    if system_name == "elo":
+        rating_system = _online_elo
+    elif system_name == "glicko":
+        rating_system = _online_glicko
+    elif system_name == "trueskill":
+        rating_system = _online_trueskill
+    else:
+        raise ValueError(f"Unknown rating system: {system_name}")
+
+    cdef np.npy_intp ratings_dim = num_competitors
+    rng = np.random.default_rng(seed)
+
+    cdef np.ndarray[double, ndim=2] all_ratings = np.zeros((num_bootstraps, num_competitors), dtype=np.float64)
+    model_inputs = ModelInputs(params, num_competitors)
+    num_batches = num_bootstraps // batch_size
+
+    cdef int start = 0
+    cdef int effective_batch_size
+    cdef _Dataset* datasets
+    array_refs = []
+
+    cdef np.ndarray[int, ndim=2] batch_matchups
+    cdef np.ndarray[double, ndim=1] batch_outcomes
+    cdef np.ndarray[int, ndim=1] batch_timesteps
+
+    while start < num_bootstraps:
+        effective_batch_size = min(batch_size, num_bootstraps - start)
+        datasets = <_Dataset*>malloc(effective_batch_size * sizeof(_Dataset))
+        idxs = rng.integers(0, matchups.shape[0], size=(effective_batch_size, matchups.shape[0]))
+        array_refs.clear()
+
+        for j in range(effective_batch_size):
+            batch_matchups = matchups[idxs[j]]
+            batch_outcomes = outcomes[idxs[j]]
+            array_refs.append((batch_matchups, batch_outcomes))
+            datasets[j].matchups = <int (*)[2]>&batch_matchups[0, 0]
+            datasets[j].outcomes = <double*>&batch_outcomes[0]
+            datasets[j].num_matchups = batch_matchups.shape[0]
+            if time_steps is not None:
+                batch_timesteps = time_steps[idxs[j]]
+                array_refs.append(batch_timesteps)
+                datasets[j].time_steps = <int*>&batch_timesteps[0]
+            else:
+                datasets[j].time_steps = NULL
+
+        outputs = multi_dataset_fit(rating_system, datasets, model_inputs._c_inputs, effective_batch_size, num_threads)
+        for j in range(effective_batch_size):
+            ratings = np.PyArray_SimpleNewFromData(1, &ratings_dim, np.NPY_DOUBLE, outputs[j].ratings)
+            all_ratings[start + j] = ratings
+
+        free(datasets)
+        start += effective_batch_size
+
+    return all_ratings

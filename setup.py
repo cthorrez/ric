@@ -9,7 +9,8 @@ ext = Extension(
         "src/elo.c",
         "src/glicko.c",
         "src/trueskill.c",
-        "src/eval.c"
+        "src/eval.c",
+        "src/multi.c",
     ],
     include_dirs=[np.get_include(), "src"],
     define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
