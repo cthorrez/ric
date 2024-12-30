@@ -5,7 +5,7 @@ import numpy as np
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import online_elo, online_glicko, online_trueskill, compute_metrics, sweep, boot
+from ric import online_elo, online_glicko, online_trueskill, compute_metrics, sweep
 
 def main():
     game = 'smash_melee'

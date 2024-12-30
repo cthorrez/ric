@@ -6,7 +6,7 @@ import polars as pl
 import matplotlib.pyplot as plt
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import sweep, boot
+from ric import sweep, sample_fit
 
 def main():
     # game = 'smash_melee'
@@ -32,9 +32,11 @@ def main():
     time_steps = dataset.time_steps
     num_matchups = matchups.shape[0]
     num_competitors = len(dataset.competitors)
-    n_bootstraps = 1000
+    num_samples = 1000
+    replace = True
     num_threads = 16
     batch_size = 96
+    plot = False
 
     print('running Bootstrap Elo')
     k = 32.0
@@ -42,14 +44,15 @@ def main():
     scale = 400.0
     base = 10.0
     start_time = time.time()
-    boot_ratings = boot(
+    boot_ratings = sample_fit(
         'elo',
         matchups,
         None,
         outcomes,
         num_competitors,
         np.array([initial_rating, k, scale, base]),
-        n_bootstraps,
+        num_samples,
+        replace=replace,
         num_threads=num_threads,
         batch_size=batch_size
     )
@@ -60,7 +63,7 @@ def main():
     print(f'ratings (min, max, mean): ({boot_ratings.min():.4f}, {boot_ratings.max():.4f}, {boot_ratings.mean():.4f})')
     plt.hist(boot_ratings)
     plt.title('Elo Rating Distribution')
-    plt.show()
+    if plot: plt.show()
 
     print('\nrunning Bootstrap Glicko')
     initial_r = 1500.0
@@ -69,14 +72,15 @@ def main():
     scale = 200.0
     base = 10.0
     start_time = time.time()
-    boot_ratings = boot(
+    boot_ratings = sample_fit(
         'glicko',
         matchups,
         time_steps,
         outcomes,
         num_competitors,
         np.array([initial_r, initial_rd, c, scale, base]),
-        n_bootstraps,
+        num_samples,
+        replace=replace,
         num_threads=num_threads,
         batch_size=batch_size
     )
@@ -87,7 +91,7 @@ def main():
     print(f'ratings (min, max, mean): ({boot_ratings.min():.4f}, {boot_ratings.max():.4f}, {boot_ratings.mean():.4f})')
     plt.hist(boot_ratings)
     plt.title('Glicko Rating Distribution')
-    plt.show()
+    if plot: plt.show()
 
 
 
@@ -98,14 +102,15 @@ def main():
     tau = sigma / 100
     epsilon = 1e-4
     start_time = time.time()
-    boot_ratings = boot(
+    boot_ratings = sample_fit(
         'trueskill',
         matchups,
         None,
         outcomes,
         num_competitors,
         np.array([mu, sigma, beta, tau, epsilon]),
-        n_bootstraps,
+        num_samples,
+        replace=replace,
         num_threads=num_threads,
         batch_size=batch_size
     )
@@ -116,7 +121,7 @@ def main():
     print(f'ratings (min, max, mean): ({boot_ratings.min():.4f}, {boot_ratings.max():.4f}, {boot_ratings.mean():.4f})')
     plt.hist(boot_ratings)
     plt.title('TrueSkill Rating Distribution')
-    plt.show()
+    if plot: plt.show()
 
 if __name__ == '__main__':
     main()

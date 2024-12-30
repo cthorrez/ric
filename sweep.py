@@ -31,9 +31,8 @@ def main():
     num_matchups = matchups.shape[0]
     num_competitors = len(dataset.competitors)
 
-
     rng = np.random.default_rng(seed=0)
-    num_sweep_inputs = 1000
+    num_sweep_inputs = 25000
     num_threads = 24
     elo_sweep_inputs = np.empty((num_sweep_inputs,4))
     elo_sweep_inputs[:,0] = np.full(shape=(num_sweep_inputs), fill_value=1500) # in elo the initial rating does not matter
@@ -95,10 +94,10 @@ def main():
 
     trueskill_sweep_inputs = np.empty((num_sweep_inputs, 5))
     trueskill_sweep_inputs[:,0] = np.full(shape=(num_sweep_inputs), fill_value=25.0) # the initial rating does not matter
-    trueskill_sweep_inputs[:,1] = rng.uniform(2.0, 16.0, size=(num_sweep_inputs,)) # initial sigma2
-    trueskill_sweep_inputs[:,2] = rng.uniform(2.0, 8.0, size=(num_sweep_inputs,)) # beta
-    trueskill_sweep_inputs[:,3] = rng.uniform(0.04, 0.16, size=(num_sweep_inputs,)) # tau
-    trueskill_sweep_inputs[:,4] = rng.uniform(1e-5, 1e-3, size=(num_sweep_inputs,)) # epsilon
+    trueskill_sweep_inputs[:,1] = rng.uniform(1.0, 16.0, size=(num_sweep_inputs,)) # initial sigma2
+    trueskill_sweep_inputs[:,2] = rng.uniform(1.0, 16.0, size=(num_sweep_inputs,)) # beta
+    trueskill_sweep_inputs[:,3] = rng.uniform(0.001, 0.5, size=(num_sweep_inputs,)) # tau
+    trueskill_sweep_inputs[:,4] = rng.uniform(1e-6, 1e-3, size=(num_sweep_inputs,)) # epsilon
 
     print(f'Sweeping TrueSkill over {num_sweep_inputs} hyperparameter combinations')
     start_time = time.time()

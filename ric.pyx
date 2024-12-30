@@ -249,14 +249,15 @@ cdef class ModelOutputs:
         self._keep_alive = (ratings, probs)
 
 
-def boot(
+def sample_fit(
     str system_name,
     np.ndarray[int, ndim=2] matchups,
     np.ndarray[int, ndim=1] time_steps,
     np.ndarray[double, ndim=1] outcomes,
     int num_competitors,
     np.ndarray[double, ndim=1] params,
-    int num_bootstraps,
+    int num_samples,
+    bint replace=True,
     int num_threads=10,
     int batch_size=10,
     int seed=0,
@@ -274,9 +275,9 @@ def boot(
     cdef np.npy_intp ratings_dim = num_competitors
     rng = np.random.default_rng(seed)
 
-    cdef np.ndarray[double, ndim=2] all_ratings = np.zeros((num_bootstraps, num_competitors), dtype=np.float64)
+    cdef np.ndarray[double, ndim=2] all_ratings = np.zeros((num_samples, num_competitors), dtype=np.float64)
     model_inputs = ModelInputs(params, num_competitors)
-    num_batches = num_bootstraps // batch_size
+    num_batches = num_samples // batch_size
 
     cdef int start = 0
     cdef int effective_batch_size
@@ -287,10 +288,13 @@ def boot(
     cdef np.ndarray[double, ndim=1] batch_outcomes
     cdef np.ndarray[int, ndim=1] batch_timesteps
 
-    while start < num_bootstraps:
-        effective_batch_size = min(batch_size, num_bootstraps - start)
+    while start < num_samples:
+        effective_batch_size = min(batch_size, num_samples - start)
         datasets = <_Dataset*>malloc(effective_batch_size * sizeof(_Dataset))
-        idxs = rng.integers(0, matchups.shape[0], size=(effective_batch_size, matchups.shape[0]))
+        if replace:
+            idxs = rng.integers(0, matchups.shape[0], size=(effective_batch_size, matchups.shape[0]))
+        else:
+            idxs = rng.permutation(np.tile(np.arange(matchups.shape[0]), (effective_batch_size, 1)), axis=1)
         array_refs.clear()
 
         for j in range(effective_batch_size):
