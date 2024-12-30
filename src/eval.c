@@ -12,7 +12,13 @@ void compute_metrics(
 ) 
 {
     for (int i=0; i<n; i++) {
-        metrics[0] += (double)((probs[i] >= 0.5) == (bool)outcomes[i]);
+        if (probs[i] > 0.5 && outcomes[i] == 1.0) {
+            metrics[0] += 1.0; // Full point for correct high prediction
+        } else if (probs[i] < 0.5 && outcomes[i] == 0.0) {
+            metrics[0] += 1.0; // Full point for correct low prediction
+        } else if (probs[i] == 0.5) {
+            metrics[0] += 0.5; // Half point for even guess
+        }
         metrics[1] += -(outcomes[i] * log(probs[i])) - ((1.0 - outcomes[i]) * log(1.0 - probs[i]));
         metrics[2] += (probs[i] - outcomes[i]) * (probs[i] - outcomes[i]);
 
