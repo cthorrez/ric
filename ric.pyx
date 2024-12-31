@@ -263,19 +263,22 @@ def sample_fit(
     int seed=0,
 ):
     cdef RatingSystem rating_system
+    rating_dim = 1
     if system_name == "elo":
         rating_system = _online_elo
     elif system_name == "glicko":
         rating_system = _online_glicko
+        rating_dim = 2
     elif system_name == "trueskill":
         rating_system = _online_trueskill
+        rating_dim = 2
     else:
         raise ValueError(f"Unknown rating system: {system_name}")
 
-    cdef np.npy_intp ratings_dim = num_competitors
+    cdef np.npy_intp num_rating_params = num_competitors * rating_dim
     rng = np.random.default_rng(seed)
 
-    cdef np.ndarray[double, ndim=2] all_ratings = np.zeros((num_samples, num_competitors), dtype=np.float64)
+    cdef np.ndarray[double, ndim=3] all_ratings = np.zeros((num_samples, num_competitors, rating_dim), dtype=np.float64)
     model_inputs = ModelInputs(params, num_competitors)
     num_batches = num_samples // batch_size
 
@@ -313,7 +316,8 @@ def sample_fit(
 
         outputs = multi_dataset_fit(rating_system, datasets, model_inputs._c_inputs, effective_batch_size, num_threads)
         for j in range(effective_batch_size):
-            ratings = np.PyArray_SimpleNewFromData(1, &ratings_dim, np.NPY_DOUBLE, outputs[j].ratings)
+            ratings = np.PyArray_SimpleNewFromData(1, &num_rating_params, np.NPY_DOUBLE, outputs[j].ratings)
+            ratings = ratings.reshape((num_competitors, rating_dim), order='F')
             all_ratings[start + j] = ratings
             free(outputs[j].ratings)
             free(outputs[j].probs)
