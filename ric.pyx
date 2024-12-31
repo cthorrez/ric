@@ -164,7 +164,7 @@ def sweep(
     np.ndarray[int, ndim=1] time_steps,
     np.ndarray[double, ndim=1] outcomes,
     int num_competitors,
-    np.ndarray[double, ndim=2] param_grid,  # Each row is a set of hyperparameters
+    np.ndarray[double, ndim=2] param_sets,  # Each row is a set of hyperparameters
     int num_threads=24,
 ):
     cdef RatingSystem rating_system
@@ -185,13 +185,13 @@ def sweep(
     dataset.num_matchups = matchups.shape[0]
 
     # Create array of ModelInputs for each parameter combination
-    cdef int num_sweep_inputs = param_grid.shape[0]
+    cdef int num_sweep_inputs = param_sets.shape[0]
     cdef _ModelInputs* sweep_inputs = <_ModelInputs*>malloc(num_sweep_inputs * sizeof(_ModelInputs))
     
     # Setup each ModelInputs struct
     for i in range(num_sweep_inputs):
         sweep_inputs[i].num_competitors = num_competitors
-        sweep_inputs[i].hyper_params = &param_grid[i,0]
+        sweep_inputs[i].hyper_params = &param_sets[i,0]
     
     # Call C sweep function
     cdef _SweepOutputs outputs = _sweep(
@@ -203,7 +203,7 @@ def sweep(
     )
     
     # Extract best parameters
-    cdef int num_params = param_grid.shape[1]
+    cdef int num_params = param_sets.shape[1]
     cdef np.ndarray[double, ndim=1] best_params = np.zeros(num_params, dtype=np.float64)
     cdef np.ndarray[double, ndim=1] best_metrics = np.zeros(3, dtype=np.float64)  # [log_loss, brier, accuracy]
     for i in range(num_params):

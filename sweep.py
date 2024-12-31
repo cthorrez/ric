@@ -48,7 +48,7 @@ def main():
         time_steps=None, # Elo does not use time info
         outcomes=outcomes,
         num_competitors=num_competitors,
-        param_grid=elo_sweep_inputs,
+        param_sets=elo_sweep_inputs,
         num_threads=num_threads,
     )
     duration = time.time() - start_time
@@ -77,7 +77,7 @@ def main():
         time_steps=time_steps, # time is needed for Glicko
         outcomes=outcomes,
         num_competitors=num_competitors,
-        param_grid=glicko_sweep_inputs,
+        param_sets=glicko_sweep_inputs,
         num_threads=num_threads,
     )
     duration = time.time() - start_time
@@ -107,7 +107,7 @@ def main():
         time_steps=None,  # not needed for TrueSkill
         outcomes=outcomes,
         num_competitors=num_competitors,
-        param_grid=trueskill_sweep_inputs,
+        param_sets=trueskill_sweep_inputs,
         num_threads=num_threads,
     )
     duration = time.time() - start_time
