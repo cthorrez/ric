@@ -162,6 +162,28 @@ def main():
     print(f"  base: {best_params[4]}")
 
 
+    print('\nRunning Batch Eval Sweep for TrueSkill')
+    start_time = time.time()
+    best_ratings, best_params = sweep_batch_eval(
+        system_name="trueskill",
+        matchups=matchups,
+        time_steps=None,  # not needed for TrueSkill
+        outcomes=outcomes,
+        num_competitors=num_competitors,
+        param_sets=trueskill_sweep_inputs,
+        num_threads=num_threads,
+    )
+    duration = time.time() - start_time
+    print(f'sweep duration (s): {duration:.4f}')
+    print("Best parameters found:")
+    print(f"  Initial rating: {best_params[0]}")
+    print(f"  Initial sigma²: {best_params[1]}")
+    print(f"  beta: {best_params[2]}")
+    print(f"  tau: {best_params[3]}")
+    print(f"  epsilon: {best_params[4]}")
+
+
+
 
 if __name__ == '__main__':
     main()
