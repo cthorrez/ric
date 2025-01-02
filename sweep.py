@@ -5,7 +5,7 @@ import numpy as np
 import polars as pl
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import online_elo, online_glicko, online_trueskill, compute_metrics, sweep
+from ric import online_elo, online_glicko, online_trueskill, compute_metrics, sweep, sweep_batch_eval
 
 def main():
     game = 'smash_melee'
@@ -32,7 +32,7 @@ def main():
     num_competitors = len(dataset.competitors)
 
     rng = np.random.default_rng(seed=0)
-    num_sweep_inputs = 25000
+    num_sweep_inputs = 1000
     num_threads = 24
     elo_sweep_inputs = np.empty((num_sweep_inputs,4))
     elo_sweep_inputs[:,0] = np.full(shape=(num_sweep_inputs), fill_value=1500) # in elo the initial rating does not matter
@@ -122,7 +122,44 @@ def main():
     print(f"  epsilon: {best_params[4]}")
 
 
+    print('\nRunning Batch Eval Sweep for Elo')
+    start_time = time.time()
+    best_ratings, best_params = sweep_batch_eval(
+        system_name="elo",
+        matchups=matchups,
+        time_steps=None, # Elo does not use time info
+        outcomes=outcomes,
+        num_competitors=num_competitors,
+        param_sets=elo_sweep_inputs,
+        num_threads=num_threads,
+    )
+    duration = time.time() - start_time
+    print(f'sweep duration (s): {duration:.4f}')
+    print("Best parameters found:")
+    print(f"  Initial rating: {best_params[0]}")
+    print(f"  k: {best_params[1]}")
+    print(f"  scale: {best_params[2]}")
+    print(f"  base: {best_params[3]}")
 
+    print('\nRunning Batch Eval Sweep for Glicko')
+    start_time = time.time()
+    best_ratings, best_params = sweep_batch_eval(
+        system_name="glicko",
+        matchups=matchups,
+        time_steps=time_steps, # time is needed for Glicko
+        outcomes=outcomes,
+        num_competitors=num_competitors,
+        param_sets=glicko_sweep_inputs,
+        num_threads=num_threads,
+    )
+    duration = time.time() - start_time
+    print(f'sweep duration (s): {duration:.4f}')
+    print("Best parameters found:")
+    print(f"  Initial rating: {best_params[0]}")
+    print(f"  Initial/max RD: {best_params[1]}")
+    print(f"  c: {best_params[2]}")
+    print(f"  scale: {best_params[3]}")
+    print(f"  base: {best_params[4]}")
 
 
 

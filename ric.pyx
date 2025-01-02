@@ -1,4 +1,6 @@
+import math
 import numpy as np
+from scipy.stats import norm
 cimport numpy as np
 from libc.stdlib cimport malloc, free
 
@@ -329,7 +331,7 @@ def sample_fit(
     return all_ratings
 
 
-def multi_params_fit(
+def sweep_batch_eval(
     str system_name,
     np.ndarray[int, ndim=2] matchups,
     np.ndarray[int, ndim=1] time_steps,
@@ -339,7 +341,7 @@ def multi_params_fit(
     int num_threads=10,
     int batch_size=10,
 ):
-    # like sweep, but return the ratings for all parameter sets
+    # like sweep, but uses final ratings to compute metrics on the entire dataset
     cdef RatingSystem rating_system
     cdef int rating_dim = 1
     if system_name == "elo":
@@ -355,7 +357,6 @@ def multi_params_fit(
 
     cdef np.npy_intp num_rating_params = num_competitors * rating_dim
     cdef int num_param_sets = param_sets.shape[0]
-    cdef np.ndarray[double, ndim=3] all_ratings = np.zeros((num_param_sets, num_competitors, rating_dim), dtype=np.float64)
     
     # Create dataset struct
     cdef _Dataset dataset
@@ -373,6 +374,10 @@ def multi_params_fit(
     cdef _ModelOutputs* outputs
     cdef int i
     cdef double* params_ptr
+
+    best_ratings = np.zeros((num_competitors, rating_dim), dtype=np.float64)
+    best_params = np.zeros(param_sets.shape[1], dtype=np.float64)
+    best_log_loss = 1e9
     
     while start < num_param_sets:
         effective_batch_size = min(batch_size, num_param_sets - start)
@@ -395,19 +400,57 @@ def multi_params_fit(
             num_threads
         )
         
-        # Copy results to numpy array
+        # iterate over the outputs, compute metrics, and store the best
         for i in range(effective_batch_size):
             ratings = np.PyArray_SimpleNewFromData(1, &num_rating_params, np.NPY_DOUBLE, outputs[i].ratings)
             ratings = ratings.reshape((num_competitors, rating_dim), order='F')
-            all_ratings[start + i] = ratings
-            # Free memory
+
+            # compute probs using batch functions over the entire dataset
+            if system_name == 'elo':
+                probs = predict_elo_batch(ratings[:,0], matchups, scale=param_sets[start + i, 2], base=param_sets[start + i, 3])
+            elif system_name == 'glicko':
+                probs = predict_glicko_batch(ratings, matchups, scale=param_sets[start + i, 3], base=param_sets[start + i, 4])
+            elif system_name == 'trueskill':
+                probs = predict_trueskill_batch(ratings, matchups, beta=param_sets[start + i, 2])
+
+            metrics = compute_metrics(probs, outcomes)
+            if metrics[1] < best_log_loss:
+                best_log_loss = metrics[1]
+                best_params = param_sets[start + i]
+                best_ratings = ratings
+
             free(outputs[i].ratings)
             free(outputs[i].probs)
-            free(model_inputs[i].hyper_params)  # Free the params we allocated
+            free(model_inputs[i].hyper_params)
         
         # Clean up
         free(model_inputs)
         free(outputs)
         start += effective_batch_size
-    
-    return all_ratings
+    return best_ratings, best_params
+
+
+
+def predict_elo_batch(ratings, pairs, scale=400.0, base=10.0):
+    alpha = np.log(base) / scale
+    rating_diffs = ratings[pairs[:,1]] - ratings[pairs[:,0]]
+    probs = 1.0 / (1.0 + np.exp(alpha * rating_diffs))
+    return probs
+
+def predict_glicko_batch(ratings, pairs, scale=400.0, base=10.0):
+    q = np.log(base) / scale
+    mus = ratings[:,0]
+    rd2s = ratings[:,1]
+    c_rd2s = rd2s[pairs[:,0]] + rd2s[pairs[:,1]]
+    gs = 1.0 / np.sqrt(1.0 + (3*q*q*c_rd2s/(math.pi * math.pi)))
+    mu_diffs = mus[pairs[:,1]] - mus[pairs[:,0]]
+    probs = 1.0 / (1.0 + np.exp(q * gs * mu_diffs))
+    return probs
+
+def predict_trueskill_batch(ratings, pairs, beta=4.166):
+    mu = ratings[:,0]
+    sigma2 = ratings[:,1]
+    mu_diffs = mu[pairs[:,1]] - mu[pairs[:,0]]
+    denom = np.sqrt(2.0 * (beta * beta) + sigma2[pairs[:,0]] + sigma2[pairs[:,1]])
+    probs = norm.cdf(mu_diffs / denom)
+    return probs
