@@ -6,7 +6,7 @@ import polars as pl
 import matplotlib.pyplot as plt
 from datasets import load_dataset
 from riix.utils.data_utils import MatchupDataset
-from ric import sweep, sample_fit
+from ric import sweep, sample_fit, multi_params_fit
 
 def main():
     # game = 'smash_melee'
@@ -122,6 +122,28 @@ def main():
     plt.hist(boot_ratings)
     plt.title('TrueSkill Rating Distribution')
     if plot: plt.show()
+
+
+    print('\nrunning Elo Sweep')
+
+    elo_param_sets = np.zeros((num_samples, 4))
+    elo_param_sets[:,0] = np.random.uniform(1400, 1600, num_samples)
+    elo_param_sets[:,1] = np.random.uniform(30, 40, num_samples)
+    elo_param_sets[:,2] = np.random.uniform(300, 500, num_samples)
+    elo_param_sets[:,3] = 10.0
+
+    elo_sweep_ratings = multi_params_fit(
+        'elo',
+        matchups,
+        None,
+        outcomes,
+        num_competitors,
+        elo_param_sets,
+        num_threads=num_threads,
+        batch_size=100
+    )
+    print(elo_sweep_ratings.shape)
+    print(elo_sweep_ratings[:,:,0])
 
 if __name__ == '__main__':
     main()

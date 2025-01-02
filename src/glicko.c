@@ -34,6 +34,7 @@ double* construct_glicko_ratings(ModelInputs model_inputs)
 
 ModelOutputs online_glicko(Dataset dataset, ModelInputs model_inputs)
 {
+    // model_inputs.hyper_params = [initial_rating, initial_rd, c, scale, base]
     const int (*matchups)[2] = dataset.matchups;
     const int* time_steps = dataset.time_steps;
     const double* outcomes = dataset.outcomes;

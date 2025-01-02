@@ -31,8 +31,8 @@ cdef extern from "src/ric.h":
     _SweepOutputs _sweep "sweep" (RatingSystem, _Dataset, _ModelInputs*, int, int)
 
     # multi dataset/params functions:
-    _ModelOutputs* multi_dataset_fit "multi_dataset_fit" (RatingSystem, _Dataset*, _ModelInputs, int, int)
-    _ModelOutputs* multi_params_fit "multi_params_fit" (RatingSystem, _Dataset, _ModelInputs*, int, int)
+    _ModelOutputs* _multi_dataset_fit "multi_dataset_fit" (RatingSystem, _Dataset*, _ModelInputs, int, int)
+    _ModelOutputs* _multi_params_fit "multi_params_fit" (RatingSystem, _Dataset, _ModelInputs*, int, int)
 
 
 def online_elo(
@@ -314,7 +314,7 @@ def sample_fit(
             else:
                 datasets[j].time_steps = NULL
 
-        outputs = multi_dataset_fit(rating_system, datasets, model_inputs._c_inputs, effective_batch_size, num_threads)
+        outputs = _multi_dataset_fit(rating_system, datasets, model_inputs._c_inputs, effective_batch_size, num_threads)
         for j in range(effective_batch_size):
             ratings = np.PyArray_SimpleNewFromData(1, &num_rating_params, np.NPY_DOUBLE, outputs[j].ratings)
             ratings = ratings.reshape((num_competitors, rating_dim), order='F')
@@ -326,4 +326,88 @@ def sample_fit(
         free(outputs)
         start += effective_batch_size
 
+    return all_ratings
+
+
+def multi_params_fit(
+    str system_name,
+    np.ndarray[int, ndim=2] matchups,
+    np.ndarray[int, ndim=1] time_steps,
+    np.ndarray[double, ndim=1] outcomes,
+    int num_competitors,
+    np.ndarray[double, ndim=2] param_sets,
+    int num_threads=10,
+    int batch_size=10,
+):
+    # like sweep, but return the ratings for all parameter sets
+    cdef RatingSystem rating_system
+    cdef int rating_dim = 1
+    if system_name == "elo":
+        rating_system = _online_elo
+    elif system_name == "glicko":
+        rating_system = _online_glicko
+        rating_dim = 2
+    elif system_name == "trueskill":
+        rating_system = _online_trueskill
+        rating_dim = 2
+    else:
+        raise ValueError(f"Unknown rating system: {system_name}")
+
+    cdef np.npy_intp num_rating_params = num_competitors * rating_dim
+    cdef int num_param_sets = param_sets.shape[0]
+    cdef np.ndarray[double, ndim=3] all_ratings = np.zeros((num_param_sets, num_competitors, rating_dim), dtype=np.float64)
+    
+    # Create dataset struct
+    cdef _Dataset dataset
+    dataset.matchups = <int (*)[2]>matchups.data
+    dataset.outcomes = <double*>outcomes.data
+    dataset.num_matchups = matchups.shape[0]
+    if time_steps is not None:
+        dataset.time_steps = <int*>time_steps.data
+    else:
+        dataset.time_steps = NULL
+
+    cdef int start = 0
+    cdef int effective_batch_size
+    cdef _ModelInputs* model_inputs
+    cdef _ModelOutputs* outputs
+    cdef int i
+    cdef double* params_ptr
+    
+    while start < num_param_sets:
+        effective_batch_size = min(batch_size, num_param_sets - start)
+        
+        # Allocate and initialize model_inputs array
+        model_inputs = <_ModelInputs*>malloc(effective_batch_size * sizeof(_ModelInputs))
+        for i in range(effective_batch_size):
+            model_inputs[i].num_competitors = num_competitors
+            params_ptr = <double*>malloc(param_sets.shape[1] * sizeof(double))
+            for j in range(param_sets.shape[1]):
+                params_ptr[j] = param_sets[start + i, j]
+            model_inputs[i].hyper_params = params_ptr
+        
+        # Call C function with proper type declarations
+        outputs = _multi_params_fit(
+            rating_system,
+            dataset,  # Removed & operator since dataset is already the correct type
+            model_inputs,
+            effective_batch_size,
+            num_threads
+        )
+        
+        # Copy results to numpy array
+        for i in range(effective_batch_size):
+            ratings = np.PyArray_SimpleNewFromData(1, &num_rating_params, np.NPY_DOUBLE, outputs[i].ratings)
+            ratings = ratings.reshape((num_competitors, rating_dim), order='F')
+            all_ratings[start + i] = ratings
+            # Free memory
+            free(outputs[i].ratings)
+            free(outputs[i].probs)
+            free(model_inputs[i].hyper_params)  # Free the params we allocated
+        
+        # Clean up
+        free(model_inputs)
+        free(outputs)
+        start += effective_batch_size
+    
     return all_ratings
